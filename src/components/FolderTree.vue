@@ -128,7 +128,6 @@
         };
   
         sortNodes(root);
-        console.log('Built tree structure:', JSON.stringify(root, null, 2));
         return root;
       };
   
@@ -136,30 +135,22 @@
         if (!props.folderPath || !window.electronAPI) {
           if (!props.folderPath) {
             console.log('No folder path available');
-          } else if (!window.electronAPI) {
-            console.log('electronAPI not available');
           }
           treeData.value = [];
           return;
         }
 
         try {
-          console.log(`Loading tree data for path: ${props.folderPath}`);
           let flatData;
           
           try {
-            // Ensure we pass serializable data to IPC
             const serializedHiddenList = JSON.parse(JSON.stringify(props.hiddenList));
             flatData = await window.electronAPI.getFolderTree(props.folderPath, serializedHiddenList);
             
-            // Ensure we received valid data
             if (!flatData) {
               throw new Error('No data received from IPC call');
             }
 
-            console.log('Received flat data:', flatData);
-
-            // Parse the data if it's a string (already JSON stringified)
             if (typeof flatData === 'string') {
               flatData = JSON.parse(flatData);
             }
@@ -175,12 +166,8 @@
             throw new Error('Invalid data format received: not an array');
           }
 
-          console.log(`Processing ${flatData.length} items`);
-
           try {
-            // Build the tree directly from the flat data
             const tree = buildTreeFromFlatData(flatData);
-            console.log(`Built tree with ${tree.length} root items:`, tree);
             treeData.value = tree;
           } catch (error: unknown) {
             const buildError = error as Error;

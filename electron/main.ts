@@ -116,7 +116,6 @@ ipcMain.handle('get-folder-tree', async (_, folderPath: string, hiddenList: stri
       });
     }
 
-    console.log('Sending tree data:', treeData);
     return treeData;
   } catch (error) {
     console.error('Error reading folder structure:', error);
