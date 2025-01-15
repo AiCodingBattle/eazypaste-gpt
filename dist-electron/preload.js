@@ -10,7 +10,8 @@ electron.contextBridge.exposeInMainWorld(
     getFolderContents: (folderPath, hiddenList) => electron.ipcRenderer.invoke("get-folder-contents", folderPath, hiddenList),
     readFile: (filePath) => electron.ipcRenderer.invoke("read-file", filePath),
     getRelativePath: (filePath, rootPath) => electron.ipcRenderer.invoke("get-relative-path", filePath, rootPath),
-    getBasename: (filePath) => electron.ipcRenderer.invoke("get-basename", filePath)
+    getBasename: (filePath) => electron.ipcRenderer.invoke("get-basename", filePath),
+    resetToDefaults: () => electron.ipcRenderer.invoke("reset-to-defaults")
   }
 );
 //# sourceMappingURL=preload.js.map

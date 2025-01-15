@@ -1,6 +1,12 @@
 <template>
     <div class="config-panel">
-      <h2>Configuration</h2>
+      <div class="config-header">
+        <h2>Configuration</h2>
+        <button @click="resetToDefaults" class="reset-button">
+          <span class="icon">🔄</span>
+          Reset to Defaults
+        </button>
+      </div>
       <div class="config-item">
         <label>Hidden Files/Folders:</label>
         <div class="input-wrapper">
@@ -111,6 +117,22 @@
         emit('update:introRules', target.value);
       };
 
+      const resetToDefaults = async () => {
+        if (window.electronAPI) {
+          try {
+            const success = await window.electronAPI.resetToDefaults();
+            if (success) {
+              // Refresh the data
+              const data = await window.electronAPI.getStoreData();
+              emit('update:hiddenList', data.hiddenList);
+              emit('update:introRules', data.introRules);
+            }
+          } catch (error) {
+            console.error('Error resetting to defaults:', error);
+          }
+        }
+      };
+
       return {
         props,
         inputValue,
@@ -119,6 +141,7 @@
         onInputKeydown,
         removeHiddenItem,
         onIntroRulesChange,
+        resetToDefaults,
       };
     },
   });
@@ -136,9 +159,39 @@
     color: #d4d4d4;
   }
 
-  h2 {
+  .config-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     margin-bottom: 1.5rem;
+  }
+
+  h2 {
+    margin: 0;
     color: #fff;
+  }
+
+  .reset-button {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background-color: #2d2d2d;
+    color: #fff;
+    border: 1px solid #444;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 14px;
+  }
+
+  .reset-button:hover {
+    background-color: #3d3d3d;
+    border-color: #666;
+  }
+
+  .reset-button .icon {
+    font-size: 16px;
   }
 
   .config-item {

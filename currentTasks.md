@@ -39,9 +39,10 @@
 - ✅ Fixed folder expansion to properly show nested files and folders
 - ✅ Fixed folder contents loading and serialization
 - ✅ Implemented real-time file selection/deselection
-- ✅ Updated default hidden files list (.git, .vscode, dist-electron, node_modules, package-lock.json)
+- ✅ Updated default hidden files list (.git, .vscode, dist-electron, node_modules, package-lock.json, images, eslint)
 - ✅ Added Select All Files functionality with toggle
 - ✅ Fixed Select All Files to properly include all files in subfolders
+- ✅ Added Reset to Defaults functionality
 
 ## What is blocked ❌
 - None at the moment

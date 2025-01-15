@@ -15,16 +15,42 @@ app.disableHardwareAcceleration();
 // Disable GPU cache
 app.commandLine.appendSwitch('disable-gpu-cache');
 
+// Default configuration
+const defaultConfig = {
+  lastFolderPath: '',
+  hiddenList: [
+    // Development folders and files
+    '.git', 
+    '.vscode', 
+    'dist-electron', 
+    'node_modules', 
+    'package-lock.json',
+    // ESLint files
+    '.eslintignore',
+    '.eslintrc',
+    '.eslintrc.json',
+    '.eslintrc.js',
+    // Image formats
+    '.jpg',
+    '.jpeg',
+    '.png',
+    '.gif',
+    '.svg',
+    '.ico',
+    '.webp',
+    '.bmp',
+    '.tiff',
+    '.idx'
+  ],
+  introRules: 'Your default intro/rules text here...',
+  selectedFiles: [] as string[],
+  userTask: '',
+};
+
 // Initialize store for local data
 const store = new Store({
   name: 'eazypaste-config',
-  defaults: {
-    lastFolderPath: '',
-    hiddenList: ['.git', '.vscode', 'dist-electron', 'node_modules', 'package-lock.json'],
-    introRules: 'Your default intro/rules text here...',
-    selectedFiles: [] as string[],
-    userTask: '',
-  },
+  defaults: defaultConfig,
 });
 
 let mainWindow: BrowserWindow | null = null;
@@ -187,4 +213,18 @@ ipcMain.handle('get-relative-path', async (_, filePath: string, rootPath: string
 
 ipcMain.handle('get-basename', async (_, filePath: string) => {
   return path.basename(filePath);
+});
+
+// Add reset handler
+ipcMain.handle('reset-to-defaults', async () => {
+  try {
+    // Reset each value to its default
+    Object.entries(defaultConfig).forEach(([key, value]) => {
+      store.set(key, value);
+    });
+    return true;
+  } catch (error) {
+    console.error('Error resetting to defaults:', error);
+    return false;
+  }
 });

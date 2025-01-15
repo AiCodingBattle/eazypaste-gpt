@@ -7,15 +7,39 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 app.disableHardwareAcceleration();
 app.commandLine.appendSwitch("disable-gpu-cache");
+const defaultConfig = {
+  lastFolderPath: "",
+  hiddenList: [
+    // Development folders and files
+    ".git",
+    ".vscode",
+    "dist-electron",
+    "node_modules",
+    "package-lock.json",
+    // ESLint files
+    ".eslintignore",
+    ".eslintrc",
+    ".eslintrc.json",
+    ".eslintrc.js",
+    // Image formats
+    ".jpg",
+    ".jpeg",
+    ".png",
+    ".gif",
+    ".svg",
+    ".ico",
+    ".webp",
+    ".bmp",
+    ".tiff",
+    ".idx"
+  ],
+  introRules: "Your default intro/rules text here...",
+  selectedFiles: [],
+  userTask: ""
+};
 const store = new Store({
   name: "eazypaste-config",
-  defaults: {
-    lastFolderPath: "",
-    hiddenList: [".git", ".vscode", "dist-electron", "node_modules", "package-lock.json"],
-    introRules: "Your default intro/rules text here...",
-    selectedFiles: [],
-    userTask: ""
-  }
+  defaults: defaultConfig
 });
 let mainWindow = null;
 async function createWindow() {
@@ -135,5 +159,16 @@ ipcMain.handle("get-relative-path", async (_, filePath, rootPath) => {
 });
 ipcMain.handle("get-basename", async (_, filePath) => {
   return path.basename(filePath);
+});
+ipcMain.handle("reset-to-defaults", async () => {
+  try {
+    Object.entries(defaultConfig).forEach(([key, value]) => {
+      store.set(key, value);
+    });
+    return true;
+  } catch (error) {
+    console.error("Error resetting to defaults:", error);
+    return false;
+  }
 });
 //# sourceMappingURL=main.js.map

@@ -17,5 +17,6 @@ contextBridge.exposeInMainWorld(
       ipcRenderer.invoke('get-relative-path', filePath, rootPath),
     getBasename: (filePath: string) =>
       ipcRenderer.invoke('get-basename', filePath),
+    resetToDefaults: () => ipcRenderer.invoke('reset-to-defaults'),
   }
 );
