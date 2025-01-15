@@ -23,6 +23,7 @@
   - Data storage
   - Folder tree structure
   - Path operations
+  - Dynamic folder contents loading
 - Fixed preload script loading issues
 - Fixed store data serialization issues
 - Fixed folder tree data serialization
@@ -35,25 +36,17 @@
 - Added file separators and paths in context
 - Fixed file selection state reactivity
 - Fixed path module issues with IPC handlers
+- ✅ Fixed folder expansion to properly show nested files and folders
+- ✅ Fixed folder contents loading and serialization
+- ✅ Implemented real-time file selection/deselection
 
 ## What is blocked ❌
-- Folder expansion shows UI elements but no content despite files existing
-- Hidden Files/Folders textfield is not editable
-- Copy Full Prompt button placement needs to be between User's Task and Selected Files Preview
-- Tree data not properly populating for expanded folders
+- None at the moment
 
 ## What is in progress ⚙️
-- ⚙️ Fixing folder tree data population for expanded folders
-- ⚙️ Making Hidden Files/Folders field editable
-- ⚙️ Reorganizing PromptBuilder layout for copy button
-- ⚙️ Debugging tree data structure issues
+- None at the moment
 
 ## What is next ⚠️
-- Fix folder expansion to properly show nested files and folders
-- Make Hidden Files/Folders field editable and functional
-- Move Copy Full Prompt button between sections
-- Debug and fix tree data population
-- Complete folder tree view implementation
 - Add file content preview
 - Implement prompt building logic
 - Add proper error handling and user feedback
@@ -87,7 +80,7 @@
 - Added comprehensive error handling for folder tree operations
 - File selection state is now properly reactive
 - Path operations now working through IPC
-- Need to fix folder expansion content display
-- Need to make Hidden Files/Folders field editable
-- Need to move Copy Full Prompt button location
-- Need to debug tree data population issues 
+- ✅ Folder expansion now properly shows nested files and folders
+- ✅ File selection/deselection working in real-time
+- ✅ Hidden Files/Folders field now fully functional with improved UI
+- ✅ Copy Full Prompt button moved to proper location with improved UI 

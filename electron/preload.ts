@@ -10,6 +10,8 @@ contextBridge.exposeInMainWorld(
     setStoreData: (data: any) => ipcRenderer.invoke('set-store-data', data),
     getFolderTree: (folderPath: string, hiddenList: string[]) =>
       ipcRenderer.invoke('get-folder-tree', folderPath, hiddenList),
+    getFolderContents: (folderPath: string, hiddenList: string[]) =>
+      ipcRenderer.invoke('get-folder-contents', folderPath, hiddenList),
     readFile: (filePath: string) => ipcRenderer.invoke('read-file', filePath),
     getRelativePath: (filePath: string, rootPath: string) =>
       ipcRenderer.invoke('get-relative-path', filePath, rootPath),

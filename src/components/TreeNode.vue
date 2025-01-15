@@ -23,16 +23,18 @@
       <span class="node-name" :class="{ 'is-file': !node.isDirectory }">{{ node.name }}</span>
     </div>
 
-    <ul v-if="node.children && node.children.length && node.isDirectory" 
-        v-show="isExpanded"
-        class="node-children">
-      <TreeNode
-        v-for="(child, idx) in node.children"
-        :key="child.path"
-        :node="child"
-        :selectedFiles="selectedFiles"
-        @toggle-file="$emit('toggle-file', $event)"
-      />
+    <ul v-if="node.isDirectory" v-show="isExpanded" class="node-children">
+      <div v-if="isLoading" class="loading">Loading...</div>
+      <template v-else>
+        <TreeNode
+          v-for="child in children"
+          :key="child.path"
+          :node="child"
+          :selectedFiles="selectedFiles"
+          :hiddenList="hiddenList"
+          @toggle-file="$emit('toggle-file', $event)"
+        />
+      </template>
     </ul>
   </li>
 </template>
@@ -45,7 +47,7 @@ interface TreeNode {
   path: string;
   isDirectory: boolean;
   type: 'directory' | 'file';
-  children: TreeNode[];
+  children?: TreeNode[];
 }
 
 export default defineComponent({
@@ -59,14 +61,44 @@ export default defineComponent({
       type: Array as () => string[],
       required: true,
     },
+    hiddenList: {
+      type: Array as () => string[],
+      required: true,
+    },
   },
   emits: ['toggle-file'],
   setup(props, { emit }) {
     const isExpanded = ref(false);
+    const isLoading = ref(false);
+    const children = ref<TreeNode[]>([]);
 
     const isSelected = computed(() => {
       return props.selectedFiles.includes(props.node.path);
     });
+
+    const loadFolderContents = async () => {
+      if (!props.node.isDirectory) return;
+      
+      isLoading.value = true;
+      try {
+        const serializedHiddenList = JSON.parse(JSON.stringify(props.hiddenList));
+        const contents = await window.electronAPI.getFolderContents(props.node.path, serializedHiddenList);
+        
+        if (!Array.isArray(contents)) {
+          throw new Error('Invalid folder contents received');
+        }
+        
+        children.value = contents.map(item => ({
+          ...item,
+          children: []
+        }));
+      } catch (error) {
+        console.error('Error loading folder contents:', error);
+        children.value = [];
+      } finally {
+        isLoading.value = false;
+      }
+    };
 
     const toggleFile = (event: Event) => {
       event.preventDefault();
@@ -74,10 +106,13 @@ export default defineComponent({
       emit('toggle-file', props.node.path);
     };
 
-    const onNodeClick = (event: Event) => {
+    const onNodeClick = async (event: Event) => {
       event.stopPropagation();
       if (props.node.isDirectory) {
         isExpanded.value = !isExpanded.value;
+        if (isExpanded.value && children.value.length === 0) {
+          await loadFolderContents();
+        }
       } else {
         toggleFile(event);
       }
@@ -86,11 +121,14 @@ export default defineComponent({
     // Reset expansion state when node changes
     watch(() => props.node, () => {
       isExpanded.value = false;
+      children.value = [];
     });
 
     return {
       isSelected,
       isExpanded,
+      isLoading,
+      children,
       toggleFile,
       onNodeClick,
     };
@@ -102,68 +140,46 @@ export default defineComponent({
 .node-entry {
   display: flex;
   align-items: center;
-  padding: 4px 8px;
+  padding: 4px;
   cursor: pointer;
-  border-radius: 4px;
-  margin: 2px 0;
-  transition: all 0.2s;
+  user-select: none;
 }
 
 .node-entry:hover {
-  background-color: #2a2a2a;
-}
-
-.node-entry.directory {
-  font-weight: bold;
-}
-
-.node-entry.selected {
-  background-color: #333;
+  background-color: rgba(255, 255, 255, 0.1);
 }
 
 .expand-icon {
-  display: inline-block;
-  width: 16px;
-  height: 16px;
+  width: 20px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
   margin-right: 4px;
-  transition: transform 0.2s;
-  color: #666;
-}
-
-.expand-icon.expanded {
-  transform: rotate(0deg);
-  color: #999;
-}
-
-.file-checkbox {
-  margin-right: 8px;
-  cursor: pointer;
-  width: 16px;
-  height: 16px;
-}
-
-.file-checkbox:checked {
-  accent-color: #444;
 }
 
 .node-name {
   margin-left: 4px;
-  user-select: none;
 }
 
 .node-name.is-file {
-  color: #ccc;
+  margin-left: 24px;
+}
+
+.file-checkbox {
+  margin-right: 4px;
 }
 
 .node-children {
   margin-left: 20px;
-  border-left: 1px solid #333;
-  padding-left: 8px;
+  list-style: none;
+  padding-left: 0;
 }
 
-ul {
-  list-style: none;
-  padding: 0;
-  margin: 0;
+.loading {
+  padding: 4px;
+  color: #666;
+  font-style: italic;
 }
 </style>

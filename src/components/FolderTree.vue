@@ -11,6 +11,7 @@
             :key="index"
             :node="node"
             :selectedFiles="selectedFiles"
+            :hiddenList="hiddenList"
             @toggle-file="toggleFile"
           />
         </ul>
@@ -97,27 +98,16 @@
         // Second pass: establish parent-child relationships
         flatData.forEach(item => {
           const node = map.get(item.p);
-          if (item.r) {
-            // Get or create parent directory
-            const parentPath = joinPaths(props.folderPath, item.r);
-            let parent = map.get(parentPath);
-            
-            if (!parent) {
-              // If parent doesn't exist in map, create it
-              parent = {
-                name: getBasename(item.r),
-                path: parentPath,
-                isDirectory: true,
-                type: 'directory',
-                children: []
-              };
-              map.set(parentPath, parent);
+          const parentPath = getDirname(item.p);
+          
+          if (parentPath !== props.folderPath) {
+            const parent = map.get(parentPath);
+            if (parent) {
+              parent.children.push(node);
+            } else {
+              root.push(node);
             }
-            
-            // Add node to parent's children
-            parent.children.push(node);
           } else {
-            // This is a root node
             root.push(node);
           }
         });
@@ -167,12 +157,13 @@
               throw new Error('No data received from IPC call');
             }
 
+            console.log('Received flat data:', flatData);
+
             // Parse the data if it's a string (already JSON stringified)
             if (typeof flatData === 'string') {
               flatData = JSON.parse(flatData);
             }
 
-            console.log('Raw data received:', typeof flatData, Array.isArray(flatData));
           } catch (error: unknown) {
             const ipcError = error as Error;
             console.error('IPC communication error:', ipcError);
@@ -184,13 +175,12 @@
             throw new Error('Invalid data format received: not an array');
           }
 
-          console.log(`Received ${flatData.length} items`);
+          console.log(`Processing ${flatData.length} items`);
 
           try {
-            // Ensure we're working with plain objects
-            const sanitizedData = JSON.parse(JSON.stringify(flatData));
-            const tree = buildTreeFromFlatData(sanitizedData);
-            console.log(`Built tree with ${tree.length} root items`);
+            // Build the tree directly from the flat data
+            const tree = buildTreeFromFlatData(flatData);
+            console.log(`Built tree with ${tree.length} root items:`, tree);
             treeData.value = tree;
           } catch (error: unknown) {
             const buildError = error as Error;

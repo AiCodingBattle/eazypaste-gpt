@@ -1,9 +1,7 @@
 import { app, BrowserWindow, ipcMain, dialog } from "electron";
 import path from "path";
 import Store from "electron-store";
-import fs from "fs";
 import fsExtra from "fs-extra";
-import { glob } from "glob";
 import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -70,44 +68,45 @@ ipcMain.handle("set-store-data", async (_, data) => {
 ipcMain.handle("get-folder-tree", async (_, folderPath, hiddenList) => {
   if (!folderPath) return [];
   try {
-    console.log("Main process: Starting folder tree build");
-    const files = await glob("**/*", {
-      cwd: folderPath,
-      dot: true
-    });
-    const filtered = files.filter((f) => {
-      return !hiddenList.some((hidden) => f.includes(hidden));
-    });
-    const result = [];
-    const chunkSize = 50;
-    for (let i = 0; i < filtered.length; i += chunkSize) {
-      const chunk = filtered.slice(i, i + chunkSize);
-      for (const relPath of chunk) {
-        const fullPath = path.join(folderPath, relPath);
-        try {
-          const stats = await fs.promises.stat(fullPath);
-          const item = {
-            n: String(path.basename(relPath)),
-            p: String(fullPath),
-            d: Boolean(stats.isDirectory()),
-            r: String(path.dirname(relPath) === "." ? "" : path.dirname(relPath))
-          };
-          result.push(item);
-        } catch (error) {
-          console.error(`Error processing path ${fullPath}:`, error);
-          continue;
-        }
-      }
+    const items = await fsExtra.readdir(folderPath, { withFileTypes: true });
+    const treeData = [];
+    for (const item of items) {
+      if (hiddenList.some((hidden) => item.name.includes(hidden))) continue;
+      const itemPath = path.join(folderPath, item.name);
+      treeData.push({
+        n: item.name,
+        p: itemPath,
+        d: item.isDirectory(),
+        r: path.relative(folderPath, path.dirname(itemPath))
+      });
     }
-    console.log("Main process: Completed building tree data");
-    const serializedResult = JSON.stringify(result);
-    return JSON.parse(serializedResult);
+    console.log("Sending tree data:", treeData);
+    return treeData;
   } catch (error) {
-    console.error("Error building folder tree:", error);
-    if (error instanceof Error) {
-      throw new Error(`Failed to build folder tree: ${error.message}`);
+    console.error("Error reading folder structure:", error);
+    return [];
+  }
+});
+ipcMain.handle("get-folder-contents", async (_, folderPath, hiddenList) => {
+  if (!folderPath) return [];
+  try {
+    const items = await fsExtra.readdir(folderPath, { withFileTypes: true });
+    const contents = [];
+    for (const item of items) {
+      if (hiddenList.some((hidden) => item.name.includes(hidden))) continue;
+      const itemPath = path.join(folderPath, item.name);
+      contents.push({
+        name: String(item.name),
+        path: String(itemPath),
+        isDirectory: Boolean(item.isDirectory()),
+        type: item.isDirectory() ? "directory" : "file"
+      });
     }
-    throw new Error("Failed to build folder tree: Unknown error");
+    console.log("Sending folder contents:", JSON.stringify(contents));
+    return contents;
+  } catch (error) {
+    console.error("Error reading folder contents:", error);
+    return [];
   }
 });
 ipcMain.handle("read-file", async (_, filePath) => {
