@@ -126,10 +126,12 @@ export default defineComponent({
     const buildPromptString = () => {
       let prompt = '';
       prompt += props.introRules + '\n\n';
+      prompt += '='.repeat(80) + '\n\n';
       prompt += 'User Task:\n' + internalUserTask.value + '\n\n';
-      prompt += 'Code Context:\n';
+      prompt += '='.repeat(80) + '\n\n';
+      prompt += 'Code Context:\n\n';
       fileContents.value.forEach((f, index) => {
-        if (index > 0) prompt += '\n------\n';
+        if (index > 0) prompt += '\n' + '#'.repeat(50) + '\n\n';
         prompt += `File: ${f.relativePath}\n`;
         prompt += f.content + '\n';
       });
