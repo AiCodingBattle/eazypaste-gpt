@@ -131,39 +131,51 @@
   
       const loadTreeData = async () => {
         if (!props.folderPath || !window.electronAPI) {
-            if (!props.folderPath) {
+          if (!props.folderPath) {
             console.log('No folder path available');
-            } else if (!window.electronAPI) {
+          } else if (!window.electronAPI) {
             console.log('electronAPI not available');
-            }
-            treeData.value = [];
-            return;
+          }
+          treeData.value = [];
+          return;
         }
 
         try {
-            // FIX: Use a template string
-            console.log(`Loading tree data for path: ${props.folderPath}`);
-            const flatData = await window.electronAPI.getFolderTree(props.folderPath, props.hiddenList);
+          console.log(`Loading tree data for path: ${props.folderPath}`);
+          let flatData;
+          
+          try {
+            flatData = await window.electronAPI.getFolderTree(props.folderPath, props.hiddenList);
+            console.log('Raw data received:', typeof flatData, Array.isArray(flatData));
+          } catch (error: unknown) {
+            const ipcError = error as Error;
+            console.error('IPC communication error:', ipcError);
+            throw new Error(`IPC error: ${ipcError.message || 'Unknown IPC error'}`);
+          }
 
-            if (!Array.isArray(flatData)) {
-            throw new Error('Invalid data format received');
-            }
+          if (!Array.isArray(flatData)) {
+            console.error('Received non-array data:', flatData);
+            throw new Error('Invalid data format received: not an array');
+          }
 
-            // FIX: Use a template string
-            console.log(`Received ${flatData.length} items`);
+          console.log(`Received ${flatData.length} items`);
 
+          try {
             const tree = buildTreeFromFlatData(flatData);
-
-            // FIX: Use a template string
             console.log(`Built tree with ${tree.length} root items`);
-
             treeData.value = tree;
-        } catch (error) {
-            console.error('Error loading tree data:', error);
-            treeData.value = [];
-            emit('error', 'Failed to load folder structure. Please try again or select a different folder.');
+          } catch (error: unknown) {
+            const buildError = error as Error;
+            console.error('Error building tree:', buildError);
+            throw new Error(`Tree building error: ${buildError.message || 'Unknown build error'}`);
+          }
+        } catch (error: unknown) {
+          const finalError = error as Error;
+          console.error('Error loading tree data:', finalError);
+          treeData.value = [];
+          emit('error', `Failed to load folder structure: ${finalError.message || 'Unknown error'}`);
         }
-        };
+      };
 
   
       // Watch for changes to folderPath or hiddenList

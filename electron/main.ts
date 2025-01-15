@@ -100,6 +100,7 @@ ipcMain.handle('get-folder-tree', async (_, folderPath: string, hiddenList: stri
   if (!folderPath) return [];
 
   try {
+    console.log('Main process: Starting folder tree build');
     const files = await glob('**/*', {
       cwd: folderPath,
       dot: true,
@@ -119,25 +120,29 @@ ipcMain.handle('get-folder-tree', async (_, folderPath: string, hiddenList: stri
         const fullPath = path.join(folderPath, relPath);
         try {
           const stats = await fs.promises.stat(fullPath);
-          result.push({
-            n: path.basename(relPath),  // name
-            p: fullPath,                // path
-            d: stats.isDirectory(),     // isDirectory
-            r: path.dirname(relPath) === '.' ? '' : path.dirname(relPath), // parent
-          });
+          const item = {
+            n: String(path.basename(relPath)),
+            p: String(fullPath),
+            d: Boolean(stats.isDirectory()),
+            r: String(path.dirname(relPath) === '.' ? '' : path.dirname(relPath))
+          };
+          result.push(item);
         } catch (error) {
-          // FIX: Add backticks or quotes
           console.error(`Error processing path ${fullPath}:`, error);
           continue;
         }
       }
     }
 
-    return result;
-  } catch (error) {
+    console.log('Main process: Completed building tree data');
+    const serializedResult = JSON.stringify(result);
+    return JSON.parse(serializedResult);
+  } catch (error: unknown) {
     console.error('Error building folder tree:', error);
-    // Return a simple error message or throw
-    throw new Error('Failed to build folder tree');
+    if (error instanceof Error) {
+      throw new Error(`Failed to build folder tree: ${error.message}`);
+    }
+    throw new Error('Failed to build folder tree: Unknown error');
   }
 });
 
