@@ -28,6 +28,33 @@
     }
   }
   
+  // Helper functions for path manipulation
+  const joinPaths = (...paths: string[]): string => {
+    // Simple path join that handles both Windows and Unix paths
+    return paths
+      .map((part, i) => {
+        if (i === 0) {
+          return part.trim().replace(/[\/\\]$/, '');
+        } else {
+          return part.trim().replace(/(^[\/\\]|[\/\\]$)/g, '');
+        }
+      })
+      .filter(x => x.length)
+      .join('/');
+  };
+  
+  const getBasename = (path: string): string => {
+    // Get the last part of the path
+    return path.split(/[\/\\]/).pop() || path;
+  };
+  
+  const getDirname = (path: string): string => {
+    // Get the directory part of the path
+    const parts = path.split(/[\/\\]/);
+    parts.pop();
+    return parts.join('/') || '.';
+  };
+  
   export default defineComponent({
     name: 'FolderTree',
     components: {
@@ -51,21 +78,87 @@
     setup(props, { emit }) {
       const treeData = ref<any[]>([]);
   
-      const loadTreeData = async () => {
-        if (props.folderPath && window.electronAPI) {
-          try {
-            console.log('Loading tree data for path:', props.folderPath);
-            const data = await window.electronAPI.getFolderTree(props.folderPath, props.hiddenList);
-            console.log('Received tree data:', data);
-            treeData.value = data || [];
-          } catch (error) {
-            console.error('Error loading tree data:', error);
-            treeData.value = [];
-            emit('error', 'Failed to load folder structure. Please try again or select a different folder.');
+      const buildTreeFromFlatData = (flatData: any[]) => {
+        const root: any[] = [];
+        const map = new Map();
+  
+        // First pass: create all nodes
+        flatData.forEach(item => {
+          const node = {
+            name: item.n,
+            path: item.p,
+            isDirectory: item.d,
+            type: item.d ? 'directory' : 'file',
+            children: []
+          };
+          map.set(item.p, node);
+  
+          if (!item.r) {
+            root.push(node);
           }
-        } else {
-          console.log('No folder path or electronAPI available');
+        });
+  
+        // Second pass: establish parent-child relationships
+        flatData.forEach(item => {
+          if (item.r) {
+            const parentPath = joinPaths(props.folderPath, item.r);
+            const parent = map.get(parentPath);
+            const node = map.get(item.p);
+            if (parent && node) {
+              parent.children.push(node);
+            }
+          }
+        });
+  
+        // Sort nodes (directories first, then alphabetically)
+        const sortNodes = (nodes: any[]) => {
+          nodes.sort((a, b) => {
+            if (a.isDirectory === b.isDirectory) {
+              return a.name.localeCompare(b.name);
+            }
+            return a.isDirectory ? -1 : 1;
+          });
+          nodes.forEach(node => {
+            if (node.children.length > 0) {
+              sortNodes(node.children);
+            }
+          });
+        };
+  
+        sortNodes(root);
+        return root;
+      };
+  
+      const loadTreeData = async () => {
+        if (!props.folderPath || !window.electronAPI) {
+          if (!props.folderPath) {
+            console.log('No folder path available');
+          } else if (!window.electronAPI) {
+            console.log('electronAPI not available');
+          }
           treeData.value = [];
+          return;
+        }
+  
+        try {
+          console.log('Loading tree data for path:', props.folderPath);
+          const flatData = await window.electronAPI.getFolderTree(props.folderPath, props.hiddenList);
+          
+          if (!Array.isArray(flatData)) {
+            throw new Error('Invalid data format received');
+          }
+  
+          // Log only the count to avoid serialization issues
+          console.log(`Received ${flatData.length} items`);
+  
+          const tree = buildTreeFromFlatData(flatData);
+          console.log(`Built tree with ${tree.length} root items`);
+          
+          treeData.value = tree;
+        } catch (error) {
+          console.error('Error loading tree data:', error);
+          treeData.value = [];
+          emit('error', 'Failed to load folder structure. Please try again or select a different folder.');
         }
       };
   

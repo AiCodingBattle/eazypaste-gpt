@@ -98,67 +98,45 @@ ipcMain.handle('set-store-data', async (_, data: any) => {
 // 4) Get folder tree structure (excluding hidden items)
 ipcMain.handle('get-folder-tree', async (_, folderPath: string, hiddenList: string[]) => {
   if (!folderPath) return [];
-  const result: any[] = [];
 
   try {
-    // Use glob or custom recursion to build a tree.
+    // Get all files and directories
     const files = await glob('**/*', {
       cwd: folderPath,
-      dot: true, // so we can see hidden items, then manually exclude them
-      nodir: false, // include directories
+      dot: true,
     });
 
-    const filteredFiles = files.filter((f) => {
-      // Exclude any path that starts with or includes hiddenList items
+    // Filter out hidden items
+    const filtered = files.filter((f) => {
       return !hiddenList.some((hidden) => f.includes(hidden));
     });
 
-    // Build a nested structure
-    for (const file of filteredFiles) {
-      // Split into parts
-      const parts = file.split(path.sep);
-      let currentLevel = result;
+    // Process files in smaller chunks to avoid memory issues
+    const result = [];
+    const chunkSize = 50;
 
-      for (let i = 0; i < parts.length; i++) {
-        const part = parts[i];
-        const fullPath = path.join(folderPath, parts.slice(0, i + 1).join(path.sep));
-        
-        let existing = currentLevel.find((item) => item.name === part);
-        if (!existing) {
-          // Only do fs operations if we haven't seen this path before
-          let isDir = false;
-          try {
-            const stats = fs.statSync(fullPath);
-            isDir = stats.isDirectory();
-          } catch (error) {
-            console.error(`Error checking path ${fullPath}:`, error);
-            // Skip this entry if we can't stat it
-            continue;
-          }
-
-          existing = {
-            name: part,
-            path: fullPath,
-            children: [],
-            isDirectory: isDir,
-            type: isDir ? 'directory' : 'file'
-          };
-          currentLevel.push(existing);
+    for (let i = 0; i < filtered.length; i += chunkSize) {
+      const chunk = filtered.slice(i, i + chunkSize);
+      
+      for (const relPath of chunk) {
+        const fullPath = path.join(folderPath, relPath);
+        try {
+          const stats = await fs.promises.stat(fullPath);
+          // Create a minimal object with only the necessary data
+          result.push({
+            n: path.basename(relPath),          // name
+            p: fullPath,                        // path
+            d: stats.isDirectory(),             // isDirectory
+            r: path.dirname(relPath) === '.' ? '' : path.dirname(relPath) // parent
+          });
+        } catch (error) {
+          console.error(`Error processing path ${fullPath}:`, error);
+          continue;
         }
-        currentLevel = existing.children;
       }
     }
 
-    // Create a safe-to-serialize copy of the data
-    const safeResult = result.map(item => ({
-      name: item.name,
-      path: item.path,
-      children: item.children,
-      isDirectory: item.isDirectory,
-      type: item.type
-    }));
-
-    return safeResult;
+    return result;
   } catch (error) {
     console.error('Error building folder tree:', error);
     throw new Error('Failed to build folder tree');
