@@ -1,8 +1,15 @@
 {
   "name": "eazypaste",
-  "private": true,
-  "version": "0.0.0",
+  "private": false,
+  "version": "0.0.1",
+  "description": "A desktop application for managing and generating ChatGPT code prompts",
   "type": "module",
+  "author": "AiCodingBattle",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AiCodingBattle/eazypaste-gpt.git"
+  },
   "scripts": {
     "dev": "vite",
     "electron:dev": "vite --mode development",
