@@ -20,7 +20,7 @@ const store = new Store({
   name: 'eazypaste-config',
   defaults: {
     lastFolderPath: '',
-    hiddenList: ['.git', 'node_modules', '.env'],
+    hiddenList: ['.git', '.vscode', 'dist-electron', 'node_modules', 'package-lock.json'],
     introRules: 'Your default intro/rules text here...',
     selectedFiles: [] as string[],
     userTask: '',
@@ -99,24 +99,39 @@ ipcMain.handle('set-store-data', async (_, data: any) => {
 ipcMain.handle('get-folder-tree', async (_, folderPath: string, hiddenList: string[]) => {
   if (!folderPath) return [];
 
-  try {
-    const items = await fsExtra.readdir(folderPath, { withFileTypes: true });
-    const treeData = [];
+  const getFilesRecursively = async (dir: string): Promise<any[]> => {
+    const items = await fsExtra.readdir(dir, { withFileTypes: true });
+    const result = [];
 
     for (const item of items) {
       // Skip hidden items
       if (hiddenList.some(hidden => item.name.includes(hidden))) continue;
 
-      const itemPath = path.join(folderPath, item.name);
-      treeData.push({
-        n: item.name,
-        p: itemPath,
-        d: item.isDirectory(),
-        r: path.relative(folderPath, path.dirname(itemPath))
-      });
+      const itemPath = path.join(dir, item.name);
+      if (item.isDirectory()) {
+        // For directories, recursively get contents
+        const children = await getFilesRecursively(itemPath);
+        // Only add directory if it has visible children or is empty
+        result.push({
+          n: item.name,
+          p: itemPath,
+          d: true,
+          c: children // Add children directly to the directory node
+        });
+      } else {
+        result.push({
+          n: item.name,
+          p: itemPath,
+          d: false
+        });
+      }
     }
 
-    return treeData;
+    return result;
+  };
+
+  try {
+    return await getFilesRecursively(folderPath);
   } catch (error) {
     console.error('Error reading folder structure:', error);
     return [];

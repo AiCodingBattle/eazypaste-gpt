@@ -1,6 +1,12 @@
 <template>
     <div class="folder-tree">
-      <button @click="onSelectFolder">Select Folder</button>
+      <div class="folder-actions">
+        <button @click="onSelectFolder" class="action-button">Select Folder</button>
+        <button v-if="folderPath" @click="selectAllFiles" class="action-button">
+          <span v-if="allFilesSelected">Deselect All Files</span>
+          <span v-else>Select All Files</span>
+        </button>
+      </div>
   
       <div v-if="folderPath">
         <h3>Folder: {{ folderPath }}</h3>
@@ -29,33 +35,6 @@
     }
   }
   
-  // Helper functions for path manipulation
-  const joinPaths = (...paths: string[]): string => {
-    // Simple path join that handles both Windows and Unix paths
-    return paths
-      .map((part, i) => {
-        if (i === 0) {
-          return part.trim().replace(/[\/\\]$/, '');
-        } else {
-          return part.trim().replace(/(^[\/\\]|[\/\\]$)/g, '');
-        }
-      })
-      .filter(x => x.length)
-      .join('/');
-  };
-  
-  const getBasename = (path: string): string => {
-    // Get the last part of the path
-    return path.split(/[\/\\]/).pop() || path;
-  };
-  
-  const getDirname = (path: string): string => {
-    // Get the directory part of the path
-    const parts = path.split(/[\/\\]/);
-    parts.pop();
-    return parts.join('/') || '.';
-  };
-  
   export default defineComponent({
     name: 'FolderTree',
     components: {
@@ -78,40 +57,23 @@
     emits: ['update:selectedFiles', 'select-folder', 'error'],
     setup(props, { emit }) {
       const treeData = ref<any[]>([]);
+      const allFilesSelected = ref(false);
   
       const buildTreeFromFlatData = (flatData: any[]) => {
-        const root: any[] = [];
-        const map = new Map();
-  
-        // First pass: create all nodes
-        flatData.forEach(item => {
-          const node = {
-            name: item.n,
-            path: item.p,
-            isDirectory: item.d,
-            type: item.d ? 'directory' : 'file',
-            children: []
+        // Convert flat data to tree structure
+        const processNode = (node: any): any => {
+          return {
+            name: node.n,
+            path: node.p,
+            isDirectory: node.d,
+            type: node.d ? 'directory' : 'file',
+            children: node.c ? node.c.map(processNode) : []
           };
-          map.set(item.p, node);
-        });
-  
-        // Second pass: establish parent-child relationships
-        flatData.forEach(item => {
-          const node = map.get(item.p);
-          const parentPath = getDirname(item.p);
-          
-          if (parentPath !== props.folderPath) {
-            const parent = map.get(parentPath);
-            if (parent) {
-              parent.children.push(node);
-            } else {
-              root.push(node);
-            }
-          } else {
-            root.push(node);
-          }
-        });
-  
+        };
+
+        // Process root level nodes
+        const root = flatData.map(processNode);
+
         // Sort nodes (directories first, then alphabetically)
         const sortNodes = (nodes: any[]) => {
           nodes.sort((a, b) => {
@@ -133,56 +95,26 @@
   
       const loadTreeData = async () => {
         if (!props.folderPath || !window.electronAPI) {
-          if (!props.folderPath) {
-            console.log('No folder path available');
-          }
           treeData.value = [];
           return;
         }
 
         try {
-          let flatData;
+          const serializedHiddenList = JSON.parse(JSON.stringify(props.hiddenList));
+          const flatData = await window.electronAPI.getFolderTree(props.folderPath, serializedHiddenList);
           
-          try {
-            const serializedHiddenList = JSON.parse(JSON.stringify(props.hiddenList));
-            flatData = await window.electronAPI.getFolderTree(props.folderPath, serializedHiddenList);
-            
-            if (!flatData) {
-              throw new Error('No data received from IPC call');
-            }
-
-            if (typeof flatData === 'string') {
-              flatData = JSON.parse(flatData);
-            }
-
-          } catch (error: unknown) {
-            const ipcError = error as Error;
-            console.error('IPC communication error:', ipcError);
-            throw new Error(`IPC error: ${ipcError.message || 'Unknown IPC error'}`);
+          if (!flatData || !Array.isArray(flatData)) {
+            throw new Error('Invalid data received from IPC call');
           }
 
-          if (!Array.isArray(flatData)) {
-            console.error('Received non-array data:', flatData);
-            throw new Error('Invalid data format received: not an array');
-          }
-
-          try {
-            const tree = buildTreeFromFlatData(flatData);
-            treeData.value = tree;
-          } catch (error: unknown) {
-            const buildError = error as Error;
-            console.error('Error building tree:', buildError);
-            throw new Error(`Tree building error: ${buildError.message || 'Unknown build error'}`);
-          }
-        } catch (error: unknown) {
-          const finalError = error as Error;
-          console.error('Error loading tree data:', finalError);
+          treeData.value = buildTreeFromFlatData(flatData);
+        } catch (error) {
+          console.error('Error loading tree data:', error);
           treeData.value = [];
-          emit('error', `Failed to load folder structure: ${finalError.message || 'Unknown error'}`);
+          emit('error', `Failed to load folder structure: ${error}`);
         }
       };
 
-  
       // Watch for changes to folderPath or hiddenList
       watch([() => props.folderPath, () => props.hiddenList], () => {
         loadTreeData();
@@ -208,28 +140,59 @@
       };
   
       const onSelectFolder = async () => {
-        console.log('Select folder button clicked');
         if (window.electronAPI) {
           try {
-            console.log('Calling electronAPI.selectFolder()');
             const result = await window.electronAPI.selectFolder();
-            console.log('selectFolder result:', result);
             if (result) {
-              console.log('Emitting select-folder event with path:', result);
               emit('select-folder', result);
             }
           } catch (error) {
             console.error('Error selecting folder:', error);
           }
-        } else {
-          console.error('electronAPI is not available');
         }
       };
+  
+      // Function to recursively get all file paths from tree
+      const getAllFilePaths = (nodes: any[]): string[] => {
+        let paths: string[] = [];
+        for (const node of nodes) {
+          if (!node.isDirectory) {
+            paths.push(node.path);
+          }
+          if (node.children && node.children.length > 0) {
+            paths = paths.concat(getAllFilePaths(node.children));
+          }
+        }
+        return paths;
+      };
+  
+      // Select/Deselect all files
+      const selectAllFiles = () => {
+        if (allFilesSelected.value) {
+          // Deselect all files
+          emit('update:selectedFiles', []);
+          allFilesSelected.value = false;
+        } else {
+          // Select all files
+          const allPaths = getAllFilePaths(treeData.value);
+          emit('update:selectedFiles', allPaths);
+          allFilesSelected.value = true;
+        }
+      };
+  
+      // Watch selectedFiles to update allFilesSelected state
+      watch(() => props.selectedFiles, (newFiles) => {
+        const allPaths = getAllFilePaths(treeData.value);
+        allFilesSelected.value = allPaths.length > 0 && 
+          allPaths.every(path => newFiles.includes(path));
+      });
   
       return {
         treeData,
         toggleFile,
         onSelectFolder,
+        selectAllFiles,
+        allFilesSelected,
       };
     },
   });
@@ -243,23 +206,36 @@
     overflow-y: auto;
   }
   
-  .folder-tree button {
+  .folder-actions {
+    display: flex;
+    gap: 1rem;
     margin-bottom: 1rem;
+  }
+
+  .action-button {
     padding: 0.5rem 1rem;
     background-color: #2d2d2d;
     color: #fff;
     border: 1px solid #444;
     border-radius: 4px;
     cursor: pointer;
+    transition: all 0.2s;
+    font-size: 14px;
   }
   
-  .folder-tree button:hover {
+  .action-button:hover {
     background-color: #3d3d3d;
+    border-color: #666;
   }
   
   .folder-tree ul {
     list-style: none;
     padding-left: 1rem;
+  }
+
+  h3 {
+    margin: 1rem 0;
+    color: #fff;
   }
   </style>
   

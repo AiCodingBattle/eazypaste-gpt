@@ -39,6 +39,9 @@
 - ✅ Fixed folder expansion to properly show nested files and folders
 - ✅ Fixed folder contents loading and serialization
 - ✅ Implemented real-time file selection/deselection
+- ✅ Updated default hidden files list (.git, .vscode, dist-electron, node_modules, package-lock.json)
+- ✅ Added Select All Files functionality with toggle
+- ✅ Fixed Select All Files to properly include all files in subfolders
 
 ## What is blocked ❌
 - None at the moment
@@ -83,4 +86,6 @@
 - ✅ Folder expansion now properly shows nested files and folders
 - ✅ File selection/deselection working in real-time
 - ✅ Hidden Files/Folders field now fully functional with improved UI
-- ✅ Copy Full Prompt button moved to proper location with improved UI 
+- ✅ Copy Full Prompt button moved to proper location with improved UI
+- ✅ Default hidden files updated with common development folders
+- ✅ Added Select All Files button with toggle functionality 
