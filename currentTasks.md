@@ -27,23 +27,32 @@
 - Fixed folder tree data serialization
 - Improved folder tree error handling
 - Added better type information for tree nodes
+- Basic folder and file visibility in tree view
+- Added folder expansion UI elements
+- Added file selection checkboxes
+- Added token count display
+- Added file separators and paths in context
 
 ## What is blocked ❌
-- No current blockers
+- Folder expansion not showing child files/folders despite UI elements being present
+- File selection state not updating properly in the UI
+- Token count and copy button placement needs to be at the top of the interface
+- Real-time UI updates for file selection not working correctly
 
 ## What is in progress ⚙️
-- Testing the current implementation
-- UI refinements and styling
-- Folder tree view implementation
-- Error handling improvements
+- ⚙️ Fixing folder tree data population for expanded folders
+- ⚙️ Improving file selection state reactivity
+- ⚙️ Reorganizing PromptBuilder layout
+- ⚙️ Enhancing UI update responsiveness
 
 ## What is next ⚠️
+- Fix folder expansion to properly show nested files and folders
+- Fix file selection state reactivity and UI updates
+- Move token count and copy button to top of interface
+- Improve UI responsiveness for file selection
 - Complete folder tree view implementation
-- Implement file selection mechanism
 - Add file content preview
 - Implement prompt building logic
-- Add token counting feature
-- Add copy to clipboard functionality
 - Add proper error handling and user feedback
 - Implement proper build and packaging process
 
@@ -72,4 +81,8 @@
 - Component communication has been simplified using v-model
 - Store data is now properly serialized for IPC communication
 - Folder tree data is now properly serialized and includes type information
-- Added comprehensive error handling for folder tree operations 
+- Added comprehensive error handling for folder tree operations
+- Folder expansion UI is in place but not showing content
+- File selection state not properly reflecting in UI
+- Need to reorganize PromptBuilder layout
+- Need to improve UI responsiveness for file selection 

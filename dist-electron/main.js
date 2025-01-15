@@ -119,4 +119,10 @@ ipcMain.handle("read-file", async (_, filePath) => {
     return "";
   }
 });
+ipcMain.handle("get-relative-path", async (_, filePath, rootPath) => {
+  return path.relative(rootPath, filePath);
+});
+ipcMain.handle("get-basename", async (_, filePath) => {
+  return path.basename(filePath);
+});
 //# sourceMappingURL=main.js.map

@@ -92,21 +92,33 @@
             children: []
           };
           map.set(item.p, node);
-  
-          if (!item.r) {
-            root.push(node);
-          }
         });
   
         // Second pass: establish parent-child relationships
         flatData.forEach(item => {
+          const node = map.get(item.p);
           if (item.r) {
+            // Get or create parent directory
             const parentPath = joinPaths(props.folderPath, item.r);
-            const parent = map.get(parentPath);
-            const node = map.get(item.p);
-            if (parent && node) {
-              parent.children.push(node);
+            let parent = map.get(parentPath);
+            
+            if (!parent) {
+              // If parent doesn't exist in map, create it
+              parent = {
+                name: getBasename(item.r),
+                path: parentPath,
+                isDirectory: true,
+                type: 'directory',
+                children: []
+              };
+              map.set(parentPath, parent);
             }
+            
+            // Add node to parent's children
+            parent.children.push(node);
+          } else {
+            // This is a root node
+            root.push(node);
           }
         });
   
@@ -119,13 +131,14 @@
             return a.isDirectory ? -1 : 1;
           });
           nodes.forEach(node => {
-            if (node.children.length > 0) {
+            if (node.children && node.children.length > 0) {
               sortNodes(node.children);
             }
           });
         };
   
         sortNodes(root);
+        console.log('Built tree structure:', JSON.stringify(root, null, 2));
         return root;
       };
   

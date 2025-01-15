@@ -20,6 +20,7 @@
         :selectedFiles="selectedFiles"
         :introRules="introRules"
         v-model:userTask="userTask"
+        :rootPath="folderPath"
       />
     </div>
   </div>

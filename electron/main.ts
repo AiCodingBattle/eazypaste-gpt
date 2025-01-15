@@ -157,3 +157,12 @@ ipcMain.handle('read-file', async (_, filePath: string) => {
     return '';
   }
 });
+
+// Add path operations handler
+ipcMain.handle('get-relative-path', async (_, filePath: string, rootPath: string) => {
+  return path.relative(rootPath, filePath);
+});
+
+ipcMain.handle('get-basename', async (_, filePath: string) => {
+  return path.basename(filePath);
+});

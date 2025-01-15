@@ -11,5 +11,9 @@ contextBridge.exposeInMainWorld(
     getFolderTree: (folderPath: string, hiddenList: string[]) =>
       ipcRenderer.invoke('get-folder-tree', folderPath, hiddenList),
     readFile: (filePath: string) => ipcRenderer.invoke('read-file', filePath),
+    getRelativePath: (filePath: string, rootPath: string) =>
+      ipcRenderer.invoke('get-relative-path', filePath, rootPath),
+    getBasename: (filePath: string) =>
+      ipcRenderer.invoke('get-basename', filePath),
   }
 );
