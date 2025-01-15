@@ -9,6 +9,17 @@
       </div>
     </div>
 
+    <div class="intro-rules">
+      <label>Intro/Rules Text:</label>
+      <textarea
+        rows="4"
+        :value="introRules"
+        @input="onIntroRulesChange($event as InputEvent)"
+        placeholder="Enter your intro/rules text here..."
+        class="intro-rules-input"
+      />
+    </div>
+
     <div class="user-task">
       <label>User's Task:</label>
       <textarea
@@ -69,7 +80,7 @@ export default defineComponent({
       required: true,
     },
   },
-  emits: ['update:userTask'],
+  emits: ['update:userTask', 'update:introRules'],
   setup(props, { emit }) {
     const fileContents = ref<{ fileName: string; content: string; relativePath: string }[]>([]);
     const internalUserTask = ref(props.userTask);
@@ -142,6 +153,12 @@ export default defineComponent({
       updateTokenCount();
     };
 
+    const onIntroRulesChange = (event: InputEvent) => {
+      const target = event.target as HTMLTextAreaElement;
+      emit('update:introRules', target.value);
+      updateTokenCount();
+    };
+
     watch(() => props.selectedFiles, () => {
       fetchFileContents();
     });
@@ -161,6 +178,7 @@ export default defineComponent({
       copyPrompt,
       onUserTaskChange,
       showCopiedTooltip,
+      onIntroRulesChange,
     };
   },
 });
@@ -335,6 +353,38 @@ export default defineComponent({
 
 ::placeholder {
   color: #666;
+}
+
+.intro-rules {
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background-color: #2d2d2d;
+  border: 1px solid #444;
+  border-radius: 4px;
+}
+
+.intro-rules label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: bold;
+  color: #fff;
+}
+
+.intro-rules-input {
+  width: 100%;
+  padding: 0.75rem;
+  background-color: #1e1e1e;
+  color: #d4d4d4;
+  border: 1px solid #444;
+  border-radius: 4px;
+  font-size: 14px;
+  resize: vertical;
+  min-height: 100px;
+}
+
+.intro-rules-input:focus {
+  outline: none;
+  border-color: #007acc;
 }
 </style>
   

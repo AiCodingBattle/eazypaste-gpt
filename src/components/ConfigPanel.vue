@@ -27,16 +27,6 @@
         </div>
         <small class="help-text">Press Enter or add comma to add items, Backspace to remove last item</small>
       </div>
-      <div class="config-item">
-        <label>Intro/Rules Text:</label>
-        <textarea
-          rows="5"
-          :value="introRules"
-          @input="onIntroRulesChange($event as InputEvent)"
-          placeholder="Enter your intro/rules text here..."
-          class="intro-rules-input"
-        />
-      </div>
     </div>
   </template>
   
@@ -164,11 +154,14 @@
     align-items: center;
     justify-content: space-between;
     margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #444;
   }
 
   h2 {
     margin: 0;
     color: #fff;
+    font-size: 1.5rem;
   }
 
   .reset-button {
@@ -176,6 +169,7 @@
     align-items: center;
     gap: 0.5rem;
     padding: 0.5rem 1rem;
+    margin-left: 2rem;
     background-color: #2d2d2d;
     color: #fff;
     border: 1px solid #444;

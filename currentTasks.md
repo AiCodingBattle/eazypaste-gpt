@@ -48,7 +48,8 @@
 - None at the moment
 
 ## What is in progress ⚙️
-- None at the moment
+- ⚙️ Moving Intro/Rules Text section to PromptBuilder between Token Count and User's Task
+- ⚙️ Improving Reset button spacing in ConfigPanel
 
 ## What is next ⚠️
 - Add file content preview
@@ -89,4 +90,7 @@
 - ✅ Hidden Files/Folders field now fully functional with improved UI
 - ✅ Copy Full Prompt button moved to proper location with improved UI
 - ✅ Default hidden files updated with common development folders
-- ✅ Added Select All Files button with toggle functionality 
+- ✅ Added Select All Files button with toggle functionality
+- ✅ Added Reset to Defaults functionality with configuration persistence
+- ⚙️ Need to move Intro/Rules Text section to a better location
+- ⚙️ Need to improve Reset button spacing 
