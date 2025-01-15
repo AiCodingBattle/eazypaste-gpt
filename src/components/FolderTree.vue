@@ -145,7 +145,20 @@
           let flatData;
           
           try {
-            flatData = await window.electronAPI.getFolderTree(props.folderPath, props.hiddenList);
+            // Ensure we pass serializable data to IPC
+            const serializedHiddenList = JSON.parse(JSON.stringify(props.hiddenList));
+            flatData = await window.electronAPI.getFolderTree(props.folderPath, serializedHiddenList);
+            
+            // Ensure we received valid data
+            if (!flatData) {
+              throw new Error('No data received from IPC call');
+            }
+
+            // Parse the data if it's a string (already JSON stringified)
+            if (typeof flatData === 'string') {
+              flatData = JSON.parse(flatData);
+            }
+
             console.log('Raw data received:', typeof flatData, Array.isArray(flatData));
           } catch (error: unknown) {
             const ipcError = error as Error;
@@ -161,7 +174,9 @@
           console.log(`Received ${flatData.length} items`);
 
           try {
-            const tree = buildTreeFromFlatData(flatData);
+            // Ensure we're working with plain objects
+            const sanitizedData = JSON.parse(JSON.stringify(flatData));
+            const tree = buildTreeFromFlatData(sanitizedData);
             console.log(`Built tree with ${tree.length} root items`);
             treeData.value = tree;
           } catch (error: unknown) {
