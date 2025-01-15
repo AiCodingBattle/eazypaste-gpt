@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer } from 'electron';
+import { contextBridge, ipcRenderer, shell } from 'electron';
 
 // Expose protected methods that allow the renderer process to use
 // the ipcRenderer without exposing the entire object
@@ -18,5 +18,6 @@ contextBridge.exposeInMainWorld(
     getBasename: (filePath: string) =>
       ipcRenderer.invoke('get-basename', filePath),
     resetToDefaults: () => ipcRenderer.invoke('reset-to-defaults'),
+    openExternal: (url: string) => shell.openExternal(url),
   }
 );

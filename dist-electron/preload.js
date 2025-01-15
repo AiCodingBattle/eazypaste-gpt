@@ -11,7 +11,8 @@ electron.contextBridge.exposeInMainWorld(
     readFile: (filePath) => electron.ipcRenderer.invoke("read-file", filePath),
     getRelativePath: (filePath, rootPath) => electron.ipcRenderer.invoke("get-relative-path", filePath, rootPath),
     getBasename: (filePath) => electron.ipcRenderer.invoke("get-basename", filePath),
-    resetToDefaults: () => electron.ipcRenderer.invoke("reset-to-defaults")
+    resetToDefaults: () => electron.ipcRenderer.invoke("reset-to-defaults"),
+    openExternal: (url) => electron.shell.openExternal(url)
   }
 );
 //# sourceMappingURL=preload.js.map
