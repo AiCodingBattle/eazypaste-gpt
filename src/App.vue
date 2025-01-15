@@ -13,7 +13,7 @@
           <a href="#" 
              @click.prevent="copyXMLParserLink" 
              class="xml-parser-link">
-            Use this XML-parser by MckayWrigley to process it
+            Use this XML-parser by MckayWrigley to process the output
           </a>
         </div>
       </div>
