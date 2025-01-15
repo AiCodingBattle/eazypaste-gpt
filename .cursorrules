@@ -1,0 +1,55 @@
+## Rules and Guidelines for Implementing ChatGPT Code Prompt Generator
+
+These guidelines aim to ensure consistency, maintainability, and efficiency in the development of the ChatGPT Code Prompt Generator using Electron and Vue.js.
+
+**I. Coding Standards:**
+
+* **Language:** Primarily TypeScript for both Electron (main process) and Vue.js (renderer process) to leverage static typing and improved code maintainability.  JavaScript is acceptable only for very small, self-contained utility functions.
+* **Linting:**  Use ESLint with a consistent configuration (e.g., Airbnb, StandardJS) to enforce code style and catch potential issues early.  Configure the linter to work with TypeScript.
+* **Formatting:** Use Prettier to automatically format code, ensuring consistent indentation and style across the project.  Integrate Prettier with your editor and commit hooks.
+* **Comments:** Write clear and concise comments to explain complex logic or non-obvious code sections.  Avoid redundant comments that merely restate the code.
+* **Naming Conventions:** Follow consistent naming conventions (e.g., camelCase for variables and functions, PascalCase for classes and components).  Use descriptive names that clearly indicate the purpose of variables, functions, and components.
+* **Error Handling:** Implement robust error handling throughout the application. Use try-catch blocks to handle potential exceptions gracefully. Log errors using a structured logging mechanism (e.g., Winston) for debugging and monitoring.  Provide informative error messages to the user.
+* **Testing:** Write unit and integration tests for critical parts of the application to ensure correctness and prevent regressions.  Use a testing framework like Jest or Vitest.
+
+
+**II. Architectural Decisions:**
+
+* **Electron Architecture:** Employ a clear separation between the main process (Electron) and the renderer process (Vue.js).  The main process is responsible for application lifecycle, file system access, and inter-process communication. The renderer process handles the UI and business logic.
+* **Inter-Process Communication (IPC):** Use Electron's IPC mechanism (specifically `ipcMain` and `ipcRenderer`) for communication between the main and renderer processes. This ensures security and prevents accidental cross-process access.  Create a dedicated `ipc` folder to organize the IPC communication logic.   Structure IPC calls with clear, well-defined event names.
+* **Vue.js Structure:**  Follow a component-based architecture in Vue.js.  Break down the UI into reusable and well-defined components.  Consider using Vuex (state management library) for managing application state efficiently, particularly for complex interactions that involve the prompt text, settings and folder selection changes.
+* **Data Persistence:** Utilize `localStorage` for small data (e.g., application settings, hidden files configuration). For large data such as the application's configuration, prompt history or other large files, consider a file-based approach JSON files for better scalability and persistence beyond the browser session.
+* **Modular Design:** Organize the code into modules (folders/files) based on functionality. This enhances code readability, maintainability and allows easier reuse of code components.  The project structure in this prompt is a good starting point. Additional modules might be needed based on complexity.
+* **Token Counting:** Implement a simplified heuristic algorithm for token estimation (e.g., character/word count) initially on the client-side.  This avoids the limitations and expense of using OpenAI's API for counting every time.  Consider a configurable weighting system to improve the approximation accuracy.  This may include weighting code differently than prose.
+* **Dependency Management:**  Use npm or yarn for managing project dependencies.  Create a comprehensive `package.json` with all required libraries and their versions defined.
+
+
+**III.  Important Considerations (Electron & Vue.js Specific):**
+
+* **Security:**  Never run untrusted code within the renderer process.  All file system access should be carefully mediated and controlled by the main process using its secure APIs.
+* **Performance:**  Optimize the file reading process to avoid blocking the UI. Use asynchronous file reading (Promises or async/await) when reading files and processing tokens.  Use debouncing/throttling techniques to reduce the frequency of calls that depend on UI changes, such as the token counter.
+* **Cross-Platform Compatibility:** Test the application on multiple platforms (Windows, macOS, Linux) during development to ensure cross-platform compatibility.
+* **Electron Build Process:**  Use Electron's built-in packaging tools to package the application for various platforms once you are ready for a release deployment.  Thoroughly test the build process in different platforms.
+* **Vue.js Build Process:** Employ Vite or Webpack to efficiently build and optimize the Vue.js application for optimal performance and bundle size.
+* **Error Reporting:** Implement a way for the user to report any critical errors encountered, providing as much relevant information as possible.  This might involve sending error information to a backend service for analysis, using an error tracking system, or simply providing adequate feedback to the user encouraging them to submit a bug report.
+* **Code Style Consistency:** Ensure consistent code styling for TypeScript, HTML, and CSS/SCSS.  A well-defined style guide and use of linting will help maintain consistency.
+* **Asynchronous Operations:**  Handle all asynchronous operations (especially file system access) using promises or async/await to prevent blocking the UI thread.
+* **Testing:** Create a solid testing strategy covering unit, integration, and potentially end-to-end tests.  Consider using Jest for unit/integration testing and Cypress or Playwright for end-to-end testing.
+
+By adhering to these guidelines, the project will be more maintainable, scalable, and easier to collaborate on.  Consistent use of types and a robust test suite will also greatly increase the reliability and longevity of the project.
+
+Always use the following file everytime to follow our work. Create the file if it's not already created.
+currentTasks.md
+- Explanation of what need to be achieved 
+- Explanation of what is already achieved 
+- Explanation of what is blocked 
+- Explanation of what is in progress 
+- Explanation of what is next 
+- Functions, pages, components, types, etc. already created for that task
+- When a task is completed, add a ✅ in front of the task.
+- When a task is blocked, add a ❌ in front of the task.
+- When a task is in progress, add a ⚙️ in front of the task.
+- When a task is not started, add a ⚠️ in front of the task.
+
+The projectGoal.md file is the goal of the project. It is the first thing you should read.
+

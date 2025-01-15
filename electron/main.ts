@@ -1,68 +1,144 @@
-import { app, BrowserWindow } from 'electron'
-import { createRequire } from 'node:module'
-import { fileURLToPath } from 'node:url'
-import path from 'node:path'
+import { app, BrowserWindow, ipcMain, dialog } from 'electron';
+import path from 'path';
+import Store from 'electron-store';
+import fs from 'fs';
+import fsExtra from 'fs-extra';
+import { glob } from 'glob';
 
-const require = createRequire(import.meta.url)
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
+// Initialize store for local data
+const store = new Store({
+  name: 'eazypaste-config',
+  defaults: {
+    lastFolderPath: '',
+    hiddenList: ['.git', 'node_modules', '.env'],
+    introRules: 'Your default intro/rules text here...',
+    selectedFiles: [] as string[],
+    userTask: '',
+  },
+});
 
-// The built directory structure
-//
-// ├─┬─┬ dist
-// │ │ └── index.html
-// │ │
-// │ ├─┬ dist-electron
-// │ │ ├── main.js
-// │ │ └── preload.mjs
-// │
-process.env.APP_ROOT = path.join(__dirname, '..')
+let mainWindow: BrowserWindow | null = null;
 
-// 🚧 Use ['ENV_NAME'] avoid vite:define plugin - Vite@2.x
-export const VITE_DEV_SERVER_URL = process.env['VITE_DEV_SERVER_URL']
-export const MAIN_DIST = path.join(process.env.APP_ROOT, 'dist-electron')
-export const RENDERER_DIST = path.join(process.env.APP_ROOT, 'dist')
-
-process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL ? path.join(process.env.APP_ROOT, 'public') : RENDERER_DIST
-
-let win: BrowserWindow | null
-
-function createWindow() {
-  win = new BrowserWindow({
-    icon: path.join(process.env.VITE_PUBLIC, 'electron-vite.svg'),
+async function createWindow() {
+  mainWindow = new BrowserWindow({
+    width: 1200,
+    height: 800,
     webPreferences: {
-      preload: path.join(__dirname, 'preload.mjs'),
+      preload: path.join(__dirname, 'preload.js'),
+      nodeIntegration: false,
+      contextIsolation: true,
     },
-  })
+  });
 
-  // Test active push message to Renderer-process.
-  win.webContents.on('did-finish-load', () => {
-    win?.webContents.send('main-process-message', (new Date).toLocaleString())
-  })
-
-  if (VITE_DEV_SERVER_URL) {
-    win.loadURL(VITE_DEV_SERVER_URL)
+  // Load your Vite dev server or the built index.html
+  if (import.meta.env.MODE === 'development') {
+    mainWindow.loadURL('http://localhost:5173');
   } else {
-    // win.loadFile('dist/index.html')
-    win.loadFile(path.join(RENDERER_DIST, 'index.html'))
+    mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
   }
 }
 
-// Quit when all windows are closed, except on macOS. There, it's common
-// for applications and their menu bar to stay active until the user quits
-// explicitly with Cmd + Q.
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    app.quit()
-    win = null
-  }
-})
+app.whenReady().then(async () => {
+  await createWindow();
 
-app.on('activate', () => {
-  // On OS X it's common to re-create a window in the app when the
-  // dock icon is clicked and there are no other windows open.
-  if (BrowserWindow.getAllWindows().length === 0) {
-    createWindow()
-  }
-})
+  app.on('activate', function () {
+    if (BrowserWindow.getAllWindows().length === 0) createWindow();
+  });
+});
 
-app.whenReady().then(createWindow)
+// Graceful shutdown
+app.on('window-all-closed', function () {
+  if (process.platform !== 'darwin') app.quit();
+});
+
+/* IPC Handlers */
+
+// 1) Open folder dialog
+ipcMain.handle('select-folder', async () => {
+  const result = await dialog.showOpenDialog({
+    properties: ['openDirectory'],
+  });
+
+  if (!result.canceled && result.filePaths && result.filePaths.length > 0) {
+    store.set('lastFolderPath', result.filePaths[0]);
+    return result.filePaths[0];
+  }
+  return null;
+});
+
+// 2) Get stored data
+ipcMain.handle('get-store-data', async () => {
+  return {
+    lastFolderPath: store.get('lastFolderPath'),
+    hiddenList: store.get('hiddenList'),
+    introRules: store.get('introRules'),
+    selectedFiles: store.get('selectedFiles'),
+    userTask: store.get('userTask'),
+  };
+});
+
+// 3) Set store data
+ipcMain.handle('set-store-data', async (_, data: any) => {
+  // data should be an object containing keys that exist in the store
+  Object.entries(data).forEach(([key, value]) => {
+    store.set(key, value);
+  });
+});
+
+// 4) Get folder tree structure (excluding hidden items)
+ipcMain.handle('get-folder-tree', async (_, folderPath: string, hiddenList: string[]) => {
+  if (!folderPath) return [];
+  const result: any[] = [];
+
+  // Use glob or custom recursion to build a tree.
+  const files = await glob('**/*', {
+    cwd: folderPath,
+    dot: true, // so we can see hidden items, then manually exclude them
+  });
+
+  const filteredFiles = files.filter((f) => {
+    // Exclude any path that starts with or includes hiddenList items
+    // For simplicity, let's just check if any hiddenList item is in the path
+    return !hiddenList.some((hidden) => f.includes(hidden));
+  });
+
+  // Build a nested structure
+  filteredFiles.forEach((file) => {
+    // Split into parts
+    const parts = file.split(path.sep);
+    let currentLevel = result;
+
+    for (const part of parts) {
+      let existing = currentLevel.find((item) => item.name === part);
+      if (!existing) {
+        existing = {
+          name: part,
+          path: path.join(folderPath, parts.slice(0, parts.indexOf(part) + 1).join(path.sep)),
+          children: [],
+          isDirectory: fs.existsSync(
+            path.join(folderPath, parts.slice(0, parts.indexOf(part) + 1).join(path.sep))
+          )
+            ? fs.lstatSync(
+                path.join(folderPath, parts.slice(0, parts.indexOf(part) + 1).join(path.sep))
+              ).isDirectory()
+            : false,
+        };
+        currentLevel.push(existing);
+      }
+      currentLevel = existing.children;
+    }
+  });
+
+  return result;
+});
+
+// 5) Read file content
+ipcMain.handle('read-file', async (_, filePath: string) => {
+  try {
+    const content = await fsExtra.readFile(filePath, 'utf-8');
+    return content;
+  } catch (error) {
+    console.error('Error reading file', filePath, error);
+    return '';
+  }
+});

@@ -1,30 +1,151 @@
-<script setup lang="ts">
-import HelloWorld from './components/HelloWorld.vue'
-</script>
-
 <template>
-  <div>
-    <a href="https://electron-vite.github.io" target="_blank">
-      <img src="/electron-vite.svg" class="logo" alt="Vite logo" />
-    </a>
-    <a href="https://vuejs.org/" target="_blank">
-      <img src="./assets/vue.svg" class="logo vue" alt="Vue logo" />
-    </a>
+  <div class="app-container dark-theme">
+    <header class="header">
+      <h1>EazyPaste</h1>
+    </header>
+    <div class="main-content">
+      <ConfigPanel
+        :hiddenList="hiddenList"
+        @update:hiddenList="updateHiddenList"
+        :introRules="introRules"
+        @update:introRules="updateIntroRules"
+      />
+
+      <FolderTree
+        :folderPath="folderPath"
+        :hiddenList="hiddenList"
+        @select-folder="selectFolder"
+        @update:selectedFiles="updateSelectedFiles"
+        :selectedFiles="selectedFiles"
+      />
+
+      <PromptBuilder
+        :selectedFiles="selectedFiles"
+        :introRules="introRules"
+        :userTask="userTask"
+        @update:userTask="updateUserTask"
+      />
+    </div>
   </div>
-  <HelloWorld msg="Vite + Vue" />
 </template>
 
+<script lang="ts">
+import { defineComponent, onMounted, ref } from 'vue';
+import ConfigPanel from './components/ConfigPanel.vue';
+import FolderTree from './components/FolderTree.vue';
+import PromptBuilder from './components/PromptBuilder.vue';
+
+declare global {
+  interface Window {
+    electronAPI?: any;
+  }
+}
+
+export default defineComponent({
+  name: 'App',
+  components: {
+    ConfigPanel,
+    FolderTree,
+    PromptBuilder,
+  },
+  setup() {
+    const folderPath = ref<string>('');
+    const hiddenList = ref<string[]>([]);
+    const introRules = ref<string>('');
+    const selectedFiles = ref<string[]>([]);
+    const userTask = ref<string>('');
+
+    const loadStoreData = async () => {
+      if (window.electronAPI) {
+        const data = await window.electronAPI.getStoreData();
+        folderPath.value = data.lastFolderPath || '';
+        hiddenList.value = data.hiddenList || [];
+        introRules.value = data.introRules || '';
+        selectedFiles.value = data.selectedFiles || [];
+        userTask.value = data.userTask || '';
+      }
+    };
+
+    // Update electron store whenever we change data
+    const saveStoreData = async () => {
+      await window.electronAPI.setStoreData({
+        lastFolderPath: folderPath.value,
+        hiddenList: hiddenList.value,
+        introRules: introRules.value,
+        selectedFiles: selectedFiles.value,
+        userTask: userTask.value,
+      });
+    };
+
+    onMounted(() => {
+      loadStoreData();
+    });
+
+    // watchers
+    const updateHiddenList = async (newList: string[]) => {
+      hiddenList.value = newList;
+      await saveStoreData();
+    };
+
+    const updateIntroRules = async (newRules: string) => {
+      introRules.value = newRules;
+      await saveStoreData();
+    };
+
+    const updateUserTask = async (newTask: string) => {
+      userTask.value = newTask;
+      await saveStoreData();
+    };
+
+    const updateSelectedFiles = async (files: string[]) => {
+      selectedFiles.value = files;
+      await saveStoreData();
+    };
+
+    const selectFolder = async () => {
+      if (window.electronAPI) {
+        const result = await window.electronAPI.selectFolder();
+        if (result) {
+          folderPath.value = result;
+          selectedFiles.value = [];
+          await saveStoreData();
+        }
+      }
+    };
+
+    return {
+      folderPath,
+      hiddenList,
+      introRules,
+      selectedFiles,
+      userTask,
+      updateHiddenList,
+      updateIntroRules,
+      updateUserTask,
+      updateSelectedFiles,
+      selectFolder,
+    };
+  },
+});
+</script>
+
 <style scoped>
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
+.app-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
 }
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
+
+.header {
+  padding: 1rem;
+  border-bottom: 1px solid #444;
 }
-.logo.vue:hover {
-  filter: drop-shadow(0 0 2em #42b883aa);
+
+.main-content {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
 }
+
+/* Dark theme styling in combination with a global .dark-theme class */
 </style>
