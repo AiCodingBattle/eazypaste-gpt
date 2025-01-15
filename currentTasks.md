@@ -9,7 +9,7 @@
 ## What is already achieved ✅
 - Basic Electron + Vue.js project setup
 - Configuration panel implementation with:
-  - Hidden files/folders configuration
+  - Hidden files/folders configuration (UI only)
   - Intro/Rules text configuration
 - Local data storage using electron-store
 - Fixed TypeScript configuration and build process
@@ -22,6 +22,7 @@
   - File reading
   - Data storage
   - Folder tree structure
+  - Path operations
 - Fixed preload script loading issues
 - Fixed store data serialization issues
 - Fixed folder tree data serialization
@@ -32,24 +33,26 @@
 - Added file selection checkboxes
 - Added token count display
 - Added file separators and paths in context
+- Fixed file selection state reactivity
+- Fixed path module issues with IPC handlers
 
 ## What is blocked ❌
-- Folder expansion not showing child files/folders despite UI elements being present
-- File selection state not updating properly in the UI
-- Token count and copy button placement needs to be at the top of the interface
-- Real-time UI updates for file selection not working correctly
+- Folder expansion shows UI elements but no content despite files existing
+- Hidden Files/Folders textfield is not editable
+- Copy Full Prompt button placement needs to be between User's Task and Selected Files Preview
+- Tree data not properly populating for expanded folders
 
 ## What is in progress ⚙️
 - ⚙️ Fixing folder tree data population for expanded folders
-- ⚙️ Improving file selection state reactivity
-- ⚙️ Reorganizing PromptBuilder layout
-- ⚙️ Enhancing UI update responsiveness
+- ⚙️ Making Hidden Files/Folders field editable
+- ⚙️ Reorganizing PromptBuilder layout for copy button
+- ⚙️ Debugging tree data structure issues
 
 ## What is next ⚠️
 - Fix folder expansion to properly show nested files and folders
-- Fix file selection state reactivity and UI updates
-- Move token count and copy button to top of interface
-- Improve UI responsiveness for file selection
+- Make Hidden Files/Folders field editable and functional
+- Move Copy Full Prompt button between sections
+- Debug and fix tree data population
 - Complete folder tree view implementation
 - Add file content preview
 - Implement prompt building logic
@@ -82,7 +85,9 @@
 - Store data is now properly serialized for IPC communication
 - Folder tree data is now properly serialized and includes type information
 - Added comprehensive error handling for folder tree operations
-- Folder expansion UI is in place but not showing content
-- File selection state not properly reflecting in UI
-- Need to reorganize PromptBuilder layout
-- Need to improve UI responsiveness for file selection 
+- File selection state is now properly reactive
+- Path operations now working through IPC
+- Need to fix folder expansion content display
+- Need to make Hidden Files/Folders field editable
+- Need to move Copy Full Prompt button location
+- Need to debug tree data population issues 
