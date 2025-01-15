@@ -153,8 +153,9 @@
 
   .config-header {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
     margin-bottom: 2rem;
     padding-bottom: 1rem;
     border-bottom: 1px solid var(--border);
@@ -170,8 +171,10 @@
   }
 
   .reset-button {
+    width: 100%;
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 0.5rem;
     padding: 0.5rem 0.75rem;
     background-color: var(--surface-hover);

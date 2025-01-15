@@ -218,15 +218,15 @@ export default defineComponent({
 }
 
 .file-checkbox {
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   margin: 0;
   margin-right: 0.5rem;
   cursor: pointer;
   border: 2px solid var(--border);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background-color: var(--surface);
-  transition: all 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   appearance: none;
   -webkit-appearance: none;
@@ -242,15 +242,37 @@ export default defineComponent({
   position: absolute;
   left: 4px;
   top: 1px;
-  width: 4px;
-  height: 8px;
+  width: 6px;
+  height: 10px;
   border: solid white;
-  border-width: 0 2px 2px 0;
-  transform: rotate(45deg);
+  border-width: 0 2.5px 2.5px 0;
+  transform: rotate(45deg) scale(1);
+  opacity: 1;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.file-checkbox:not(:checked)::after {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 1px;
+  width: 6px;
+  height: 10px;
+  border: solid white;
+  border-width: 0 2.5px 2.5px 0;
+  transform: rotate(45deg) scale(0);
+  opacity: 0;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .file-checkbox:hover {
   border-color: var(--primary);
+  background-color: rgba(79, 70, 229, 0.1);
+}
+
+.file-checkbox:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2);
 }
 
 .node-children {

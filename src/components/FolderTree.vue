@@ -3,13 +3,22 @@
       <div class="folder-actions">
         <div class="primary-actions">
           <button @click="onSelectFolder" class="action-button">Select Folder</button>
-          <button v-if="folderPath" @click="selectAllFiles" class="action-button">
+          <button 
+            v-if="folderPath" 
+            @click="selectAllFiles" 
+            class="action-button"
+            :class="{ 'primary-bg': selectedFiles.length === 0 }"
+          >
             <span v-if="allFilesSelected">Deselect All Files</span>
             <span v-else>Select All Files</span>
           </button>
         </div>
         <div v-if="folderPath" class="fold-actions">
-          <button @click="unfoldAll" class="action-button">Unfold All</button>
+          <button 
+            @click="unfoldAll" 
+            class="action-button"
+            :class="{ 'primary-bg': allFolded }"
+          >Unfold All</button>
           <button @click="foldAll" class="action-button">Fold All</button>
         </div>
       </div>
@@ -68,6 +77,7 @@
       const allFilesSelected = ref(false);
       const expandedState = ref<boolean | null>(null);
       const expansionStates = ref<Map<string, boolean>>(new Map());
+      const allFolded = ref(true);
   
       const buildTreeFromFlatData = (flatData: any[]) => {
         // Convert flat data to tree structure
@@ -207,6 +217,8 @@
 
       const handleExpansionChange = (data: { path: string, isExpanded: boolean }) => {
         expansionStates.value.set(data.path, data.isExpanded);
+        // Update allFolded state
+        allFolded.value = Array.from(expansionStates.value.values()).every(state => !state);
       };
 
       // Reset expansion state after it's been applied
@@ -215,6 +227,8 @@
           // Reset after a short delay to allow the change to propagate
           setTimeout(() => {
             expandedState.value = null;
+            // Update allFolded state when using fold/unfold all
+            allFolded.value = !newValue;
           }, 100);
         }
       });
@@ -229,6 +243,7 @@
         foldAll,
         expandedState,
         handleExpansionChange,
+        allFolded,
       };
     },
   });
@@ -267,12 +282,27 @@
     justify-content: center;
     gap: 0.5rem;
     font-size: 0.9375rem;
-  }
-
-  .action-button:not(:first-child) {
     background-color: var(--surface-hover);
     color: var(--text);
     border: 1px solid var(--border);
+  }
+
+  .action-button.primary-bg {
+    background-color: var(--primary);
+    color: white;
+    border: none;
+  }
+
+  .action-button:not(.primary-bg):hover {
+    border-color: var(--primary);
+    background-color: var(--surface-hover);
+    color: var(--text);
+  }
+
+  .action-button.primary-bg:hover {
+    background-color: var(--primary-hover);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
   }
 
   h3 {
