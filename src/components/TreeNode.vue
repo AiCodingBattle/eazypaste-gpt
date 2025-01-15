@@ -40,7 +40,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, computed, ref, watch } from 'vue';
+import { defineComponent, computed, ref, watch, PropType } from 'vue';
 
 interface TreeNode {
   name: string;
@@ -65,8 +65,12 @@ export default defineComponent({
       type: Array as () => string[],
       required: true,
     },
+    forceExpanded: {
+      type: Boolean as PropType<boolean | null>,
+      default: null,
+    }
   },
-  emits: ['toggle-file'],
+  emits: ['toggle-file', 'expansion-change'],
   setup(props, { emit }) {
     const isExpanded = ref(false);
     const isLoading = ref(false);
@@ -106,6 +110,21 @@ export default defineComponent({
       emit('toggle-file', props.node.path);
     };
 
+    // Watch for forced expansion state changes
+    watch(() => props.forceExpanded, async (newValue) => {
+      if (newValue !== null) {
+        isExpanded.value = newValue;
+        if (newValue && children.value.length === 0) {
+          await loadFolderContents();
+        }
+        // Emit the current expansion state
+        emit('expansion-change', {
+          path: props.node.path,
+          isExpanded: isExpanded.value
+        });
+      }
+    });
+
     const onNodeClick = async (event: Event) => {
       event.stopPropagation();
       if (props.node.isDirectory) {
@@ -113,6 +132,11 @@ export default defineComponent({
         if (isExpanded.value && children.value.length === 0) {
           await loadFolderContents();
         }
+        // Emit expansion state change
+        emit('expansion-change', {
+          path: props.node.path,
+          isExpanded: isExpanded.value
+        });
       } else {
         toggleFile(event);
       }

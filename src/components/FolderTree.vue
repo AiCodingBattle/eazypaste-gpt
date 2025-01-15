@@ -1,11 +1,17 @@
 <template>
     <div class="folder-tree">
       <div class="folder-actions">
-        <button @click="onSelectFolder" class="action-button">Select Folder</button>
-        <button v-if="folderPath" @click="selectAllFiles" class="action-button">
-          <span v-if="allFilesSelected">Deselect All Files</span>
-          <span v-else>Select All Files</span>
-        </button>
+        <div class="primary-actions">
+          <button @click="onSelectFolder" class="action-button">Select Folder</button>
+          <button v-if="folderPath" @click="selectAllFiles" class="action-button">
+            <span v-if="allFilesSelected">Deselect All Files</span>
+            <span v-else>Select All Files</span>
+          </button>
+        </div>
+        <div v-if="folderPath" class="fold-actions">
+          <button @click="unfoldAll" class="action-button">Unfold All</button>
+          <button @click="foldAll" class="action-button">Fold All</button>
+        </div>
       </div>
   
       <div v-if="folderPath">
@@ -18,7 +24,9 @@
             :node="node"
             :selectedFiles="selectedFiles"
             :hiddenList="hiddenList"
+            :forceExpanded="expandedState"
             @toggle-file="toggleFile"
+            @expansion-change="handleExpansionChange"
           />
         </ul>
       </div>
@@ -58,6 +66,8 @@
     setup(props, { emit }) {
       const treeData = ref<any[]>([]);
       const allFilesSelected = ref(false);
+      const expandedState = ref<boolean | null>(null);
+      const expansionStates = ref<Map<string, boolean>>(new Map());
   
       const buildTreeFromFlatData = (flatData: any[]) => {
         // Convert flat data to tree structure
@@ -187,12 +197,38 @@
           allPaths.every(path => newFiles.includes(path));
       });
   
+      const unfoldAll = async () => {
+        expandedState.value = true;
+      };
+
+      const foldAll = () => {
+        expandedState.value = false;
+      };
+
+      const handleExpansionChange = (data: { path: string, isExpanded: boolean }) => {
+        expansionStates.value.set(data.path, data.isExpanded);
+      };
+
+      // Reset expansion state after it's been applied
+      watch(expandedState, (newValue) => {
+        if (newValue !== null) {
+          // Reset after a short delay to allow the change to propagate
+          setTimeout(() => {
+            expandedState.value = null;
+          }, 100);
+        }
+      });
+  
       return {
         treeData,
         toggleFile,
         onSelectFolder,
         selectAllFiles,
         allFilesSelected,
+        unfoldAll,
+        foldAll,
+        expandedState,
+        handleExpansionChange,
       };
     },
   });
@@ -208,8 +244,15 @@
   
   .folder-actions {
     display: flex;
-    gap: 1rem;
+    flex-direction: column;
+    gap: 0.5rem;
     margin-bottom: 1rem;
+  }
+
+  .primary-actions, .fold-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
   }
 
   .action-button {

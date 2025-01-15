@@ -21,7 +21,13 @@
     </div>
 
     <div class="user-task">
-      <label>User's Task:</label>
+      <div class="field-header">
+        <label>User's Task:</label>
+        <button @click="clearUserTask" class="clear-button" v-if="internalUserTask">
+          <span class="icon">🗑️</span>
+          Clear
+        </button>
+      </div>
       <textarea
         rows="3"
         v-model="internalUserTask"
@@ -159,15 +165,35 @@ export default defineComponent({
       updateTokenCount();
     };
 
+    const clearUserTask = () => {
+      internalUserTask.value = '';
+      emit('update:userTask', '');
+      updateTokenCount();
+    };
+
+    // Watch for prop changes to update internal state
+    watch(() => props.userTask, (newValue) => {
+      internalUserTask.value = newValue;
+    });
+
+    // Watch for selected files changes
     watch(() => props.selectedFiles, () => {
       fetchFileContents();
     });
 
+    // Watch for file contents changes to update token count
+    watch(() => fileContents.value, () => {
+      updateTokenCount();
+    }, { deep: true });
+
+    // Watch for intro rules changes to update token count
     watch(() => props.introRules, () => {
       updateTokenCount();
     });
 
+    // Initial setup
     onMounted(() => {
+      internalUserTask.value = props.userTask;
       fetchFileContents();
     });
 
@@ -179,6 +205,7 @@ export default defineComponent({
       onUserTaskChange,
       showCopiedTooltip,
       onIntroRulesChange,
+      clearUserTask,
     };
   },
 });
@@ -357,10 +384,6 @@ export default defineComponent({
 
 .intro-rules {
   margin-bottom: 1.5rem;
-  padding: 1rem;
-  background-color: #2d2d2d;
-  border: 1px solid #444;
-  border-radius: 4px;
 }
 
 .intro-rules label {
@@ -373,7 +396,7 @@ export default defineComponent({
 .intro-rules-input {
   width: 100%;
   padding: 0.75rem;
-  background-color: #1e1e1e;
+  background-color: #2d2d2d;
   color: #d4d4d4;
   border: 1px solid #444;
   border-radius: 4px;
@@ -385,6 +408,36 @@ export default defineComponent({
 .intro-rules-input:focus {
   outline: none;
   border-color: #007acc;
+}
+
+.field-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.clear-button {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  background-color: #2d2d2d;
+  color: #ff6b6b;
+  border: 1px solid #444;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 12px;
+}
+
+.clear-button:hover {
+  background-color: #3d3d3d;
+  border-color: #666;
+}
+
+.clear-button .icon {
+  font-size: 14px;
 }
 </style>
   

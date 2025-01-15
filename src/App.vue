@@ -18,7 +18,7 @@
 
       <PromptBuilder
         :selectedFiles="selectedFiles"
-        :introRules="introRules"
+        v-model:introRules="introRules"
         v-model:userTask="userTask"
         :rootPath="folderPath"
       />
