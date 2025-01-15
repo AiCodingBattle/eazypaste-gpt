@@ -237,48 +237,89 @@
   <style scoped>
   .folder-tree {
     flex: 2;
-    padding: 1rem;
-    border-right: 1px solid #444;
+    padding: 1.5rem;
+    background-color: var(--surface);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
     overflow-y: auto;
+    height: calc(100vh - 120px);
+    border: 1px solid var(--border);
   }
   
   .folder-actions {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
-    margin-bottom: 1rem;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
   }
 
-  .primary-actions, .fold-actions {
+  .primary-actions,
+  .fold-actions {
     display: flex;
-    gap: 0.5rem;
-    flex-wrap: wrap;
+    gap: 0.75rem;
   }
 
   .action-button {
-    padding: 0.5rem 1rem;
-    background-color: #2d2d2d;
-    color: #fff;
-    border: 1px solid #444;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: all 0.2s;
-    font-size: 14px;
+    flex: 1;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    font-size: 0.9375rem;
   }
-  
-  .action-button:hover {
-    background-color: #3d3d3d;
-    border-color: #666;
-  }
-  
-  .folder-tree ul {
-    list-style: none;
-    padding-left: 1rem;
+
+  .action-button:not(:first-child) {
+    background-color: var(--surface-hover);
+    color: var(--text);
+    border: 1px solid var(--border);
   }
 
   h3 {
-    margin: 1rem 0;
-    color: #fff;
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    margin: 0 0 1rem 0;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  /* Add smooth transitions */
+  .fade-enter-active,
+  .fade-leave-active {
+    transition: opacity 0.2s ease;
+  }
+
+  .fade-enter-from,
+  .fade-leave-to {
+    opacity: 0;
+  }
+
+  /* Responsive design */
+  @media (max-width: 768px) {
+    .folder-tree {
+      height: auto;
+      max-height: 50vh;
+    }
+
+    .folder-actions {
+      flex-direction: column;
+    }
+
+    .primary-actions,
+    .fold-actions {
+      flex-direction: column;
+    }
+
+    .action-button {
+      width: 100%;
+    }
   }
   </style>
   

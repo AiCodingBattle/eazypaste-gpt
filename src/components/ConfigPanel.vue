@@ -140,84 +140,89 @@
   <style scoped>
   .config-panel {
     flex: 1;
-    padding: 1rem;
-    border-right: 1px solid #444;
+    padding: 1.5rem;
     min-width: 300px;
     max-width: 300px;
     overflow-y: auto;
-    background-color: #1e1e1e;
-    color: #d4d4d4;
+    background-color: var(--surface);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--border);
+    height: calc(100vh - 120px);
   }
 
   .config-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 1.5rem;
+    margin-bottom: 2rem;
     padding-bottom: 1rem;
-    border-bottom: 1px solid #444;
+    border-bottom: 1px solid var(--border);
   }
 
   h2 {
     margin: 0;
-    color: #fff;
     font-size: 1.5rem;
+    font-weight: 600;
+    background: linear-gradient(135deg, var(--primary) 0%, #818cf8 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
   }
 
   .reset-button {
-    display: flex;
+    display: inline-flex;
     align-items: center;
     gap: 0.5rem;
-    padding: 0.5rem 1rem;
-    margin-left: 2rem;
-    background-color: #2d2d2d;
-    color: #fff;
-    border: 1px solid #444;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: all 0.2s;
-    font-size: 14px;
+    padding: 0.5rem 0.75rem;
+    background-color: var(--surface-hover);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    font-size: 0.875rem;
+    transition: all 0.2s ease;
   }
 
   .reset-button:hover {
-    background-color: #3d3d3d;
-    border-color: #666;
+    border-color: var(--primary);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
   }
 
   .reset-button .icon {
-    font-size: 16px;
+    font-size: 1rem;
   }
 
   .config-item {
-    margin-bottom: 1.5rem;
-    display: flex;
-    flex-direction: column;
+    margin-bottom: 2rem;
   }
 
   .config-item label {
-    margin-bottom: 0.5rem;
-    font-weight: bold;
-    color: #fff;
+    display: block;
+    margin-bottom: 0.75rem;
+    font-weight: 500;
+    color: var(--text);
   }
 
   .input-wrapper {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 0.75rem;
   }
 
   input, textarea {
-    padding: 0.5rem;
-    border: 1px solid #444;
-    border-radius: 4px;
-    background-color: #2d2d2d;
-    color: #d4d4d4;
-    font-size: 14px;
+    padding: 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background-color: var(--surface);
+    color: var(--text);
+    font-size: 0.9375rem;
+    transition: all 0.2s ease;
   }
 
   input:focus, textarea:focus {
     outline: none;
-    border-color: #007acc;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.1);
   }
 
   .hidden-list-input {
@@ -227,13 +232,14 @@
   .intro-rules-input {
     width: 100%;
     resize: vertical;
-    min-height: 100px;
+    min-height: 120px;
+    line-height: 1.6;
   }
 
   .help-text {
-    margin-top: 0.25rem;
-    font-size: 12px;
-    color: #888;
+    margin-top: 0.5rem;
+    font-size: 0.8125rem;
+    color: var(--text-secondary);
   }
 
   .tags {
@@ -245,29 +251,60 @@
   .tag {
     display: inline-flex;
     align-items: center;
-    padding: 0.25rem 0.5rem;
-    background-color: #2d2d2d;
-    border: 1px solid #444;
-    border-radius: 4px;
-    font-size: 12px;
+    gap: 0.375rem;
+    padding: 0.375rem 0.75rem;
+    background-color: var(--surface-hover);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    font-size: 0.875rem;
+    transition: all 0.2s ease;
+  }
+
+  .tag:hover {
+    border-color: var(--primary);
+    transform: translateY(-1px);
   }
 
   .remove-tag {
-    margin-left: 0.5rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    padding: 0;
     background: none;
     border: none;
-    color: #888;
+    color: var(--text-secondary);
+    font-size: 1rem;
     cursor: pointer;
-    padding: 0 0.25rem;
-    font-size: 14px;
+    transition: all 0.2s ease;
   }
 
   .remove-tag:hover {
-    color: #ff5555;
+    color: var(--error);
+    transform: scale(1.1);
   }
 
-  ::placeholder {
-    color: #666;
+  /* Responsive design */
+  @media (max-width: 768px) {
+    .config-panel {
+      min-width: 100%;
+      max-width: 100%;
+      height: auto;
+      max-height: none;
+    }
+
+    .config-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 1rem;
+    }
+
+    .reset-button {
+      width: 100%;
+      justify-content: center;
+    }
   }
   </style>
   

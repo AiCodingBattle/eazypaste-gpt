@@ -164,46 +164,136 @@ export default defineComponent({
 .node-entry {
   display: flex;
   align-items: center;
-  padding: 4px;
+  padding: 0.5rem;
   cursor: pointer;
   user-select: none;
+  border-radius: var(--radius-sm);
+  transition: all 0.2s ease;
+  color: var(--text-secondary);
 }
 
 .node-entry:hover {
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: var(--surface-hover);
+  color: var(--text);
+}
+
+.node-entry.selected {
+  background-color: rgba(79, 70, 229, 0.1);
+  color: var(--text);
+}
+
+.node-entry.directory {
+  font-weight: 500;
+  color: var(--text);
 }
 
 .expand-icon {
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   font-size: 10px;
-  margin-right: 4px;
+  color: var(--text-secondary);
+  transition: transform 0.2s ease;
+}
+
+.expand-icon.expanded {
+  transform: rotate(0deg);
+}
+
+.expand-icon:not(.expanded) {
+  transform: rotate(-90deg);
 }
 
 .node-name {
-  margin-left: 4px;
+  margin-left: 0.5rem;
+  font-size: 0.9375rem;
+  transition: color 0.2s ease;
 }
 
 .node-name.is-file {
-  margin-left: 24px;
+  margin-left: 0.5rem;
+  opacity: 0.8;
 }
 
 .file-checkbox {
-  margin-right: 4px;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  margin-right: 0.5rem;
+  cursor: pointer;
+  border: 2px solid var(--border);
+  border-radius: 4px;
+  background-color: var(--surface);
+  transition: all 0.2s ease;
+  position: relative;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.file-checkbox:checked {
+  background-color: var(--primary);
+  border-color: var(--primary);
+}
+
+.file-checkbox:checked::after {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 1px;
+  width: 4px;
+  height: 8px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.file-checkbox:hover {
+  border-color: var(--primary);
 }
 
 .node-children {
-  margin-left: 20px;
+  margin-left: 1.25rem;
   list-style: none;
   padding-left: 0;
+  position: relative;
+}
+
+.node-children::before {
+  content: '';
+  position: absolute;
+  left: -12px;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background-color: var(--border);
+  opacity: 0.5;
 }
 
 .loading {
-  padding: 4px;
-  color: #666;
+  padding: 0.75rem;
+  color: var(--text-secondary);
   font-style: italic;
+  font-size: 0.875rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.loading::before {
+  content: '';
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--border);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 </style>
