@@ -4,6 +4,16 @@ import Store from 'electron-store';
 import fs from 'fs';
 import fsExtra from 'fs-extra';
 import { glob } from 'glob';
+import { fileURLToPath } from 'url';
+
+// ES Module __dirname equivalent
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Disable GPU acceleration to avoid cache issues
+app.disableHardwareAcceleration();
+// Disable GPU cache
+app.commandLine.appendSwitch('disable-gpu-cache');
 
 // Initialize store for local data
 const store = new Store({
@@ -90,46 +100,69 @@ ipcMain.handle('get-folder-tree', async (_, folderPath: string, hiddenList: stri
   if (!folderPath) return [];
   const result: any[] = [];
 
-  // Use glob or custom recursion to build a tree.
-  const files = await glob('**/*', {
-    cwd: folderPath,
-    dot: true, // so we can see hidden items, then manually exclude them
-  });
+  try {
+    // Use glob or custom recursion to build a tree.
+    const files = await glob('**/*', {
+      cwd: folderPath,
+      dot: true, // so we can see hidden items, then manually exclude them
+      nodir: false, // include directories
+    });
 
-  const filteredFiles = files.filter((f) => {
-    // Exclude any path that starts with or includes hiddenList items
-    // For simplicity, let's just check if any hiddenList item is in the path
-    return !hiddenList.some((hidden) => f.includes(hidden));
-  });
+    const filteredFiles = files.filter((f) => {
+      // Exclude any path that starts with or includes hiddenList items
+      return !hiddenList.some((hidden) => f.includes(hidden));
+    });
 
-  // Build a nested structure
-  filteredFiles.forEach((file) => {
-    // Split into parts
-    const parts = file.split(path.sep);
-    let currentLevel = result;
+    // Build a nested structure
+    for (const file of filteredFiles) {
+      // Split into parts
+      const parts = file.split(path.sep);
+      let currentLevel = result;
 
-    for (const part of parts) {
-      let existing = currentLevel.find((item) => item.name === part);
-      if (!existing) {
-        existing = {
-          name: part,
-          path: path.join(folderPath, parts.slice(0, parts.indexOf(part) + 1).join(path.sep)),
-          children: [],
-          isDirectory: fs.existsSync(
-            path.join(folderPath, parts.slice(0, parts.indexOf(part) + 1).join(path.sep))
-          )
-            ? fs.lstatSync(
-                path.join(folderPath, parts.slice(0, parts.indexOf(part) + 1).join(path.sep))
-              ).isDirectory()
-            : false,
-        };
-        currentLevel.push(existing);
+      for (let i = 0; i < parts.length; i++) {
+        const part = parts[i];
+        const fullPath = path.join(folderPath, parts.slice(0, i + 1).join(path.sep));
+        
+        let existing = currentLevel.find((item) => item.name === part);
+        if (!existing) {
+          // Only do fs operations if we haven't seen this path before
+          let isDir = false;
+          try {
+            const stats = fs.statSync(fullPath);
+            isDir = stats.isDirectory();
+          } catch (error) {
+            console.error(`Error checking path ${fullPath}:`, error);
+            // Skip this entry if we can't stat it
+            continue;
+          }
+
+          existing = {
+            name: part,
+            path: fullPath,
+            children: [],
+            isDirectory: isDir,
+            type: isDir ? 'directory' : 'file'
+          };
+          currentLevel.push(existing);
+        }
+        currentLevel = existing.children;
       }
-      currentLevel = existing.children;
     }
-  });
 
-  return result;
+    // Create a safe-to-serialize copy of the data
+    const safeResult = result.map(item => ({
+      name: item.name,
+      path: item.path,
+      children: item.children,
+      isDirectory: item.isDirectory,
+      type: item.type
+    }));
+
+    return safeResult;
+  } catch (error) {
+    console.error('Error building folder tree:', error);
+    throw new Error('Failed to build folder tree');
+  }
 });
 
 // 5) Read file content

@@ -6,7 +6,7 @@
         <input
           type="text"
           :value="hiddenListString"
-          @input="onHiddenListChange($event.target.value)"
+          @input="onHiddenListChange($event as InputEvent)"
         />
       </div>
       <div class="config-item">
@@ -14,7 +14,7 @@
         <textarea
           rows="5"
           :value="introRules"
-          @input="onIntroRulesChange($event.target.value)"
+          @input="onIntroRulesChange($event as InputEvent)"
         />
       </div>
     </div>
@@ -42,16 +42,18 @@
         return props.hiddenList.join(', ');
       });
   
-      const onHiddenListChange = (value: string) => {
-        const newList = value
+      const onHiddenListChange = (event: InputEvent) => {
+        const target = event.target as HTMLInputElement;
+        const newList = target.value
           .split(',')
           .map((v) => v.trim())
           .filter((v) => v);
         emit('update:hiddenList', newList);
       };
   
-      const onIntroRulesChange = (value: string) => {
-        emit('update:introRules', value);
+      const onIntroRulesChange = (event: InputEvent) => {
+        const target = event.target as HTMLTextAreaElement;
+        emit('update:introRules', target.value);
       };
   
       return {

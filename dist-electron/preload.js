@@ -10,3 +10,4 @@ electron.contextBridge.exposeInMainWorld(
     readFile: (filePath) => electron.ipcRenderer.invoke("read-file", filePath)
   }
 );
+//# sourceMappingURL=preload.js.map

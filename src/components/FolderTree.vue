@@ -1,6 +1,6 @@
 <template>
     <div class="folder-tree">
-      <button @click="selectFolder">Select Folder</button>
+      <button @click="onSelectFolder">Select Folder</button>
   
       <div v-if="folderPath">
         <h3>Folder: {{ folderPath }}</h3>
@@ -47,15 +47,24 @@
         required: true,
       },
     },
-    emits: ['update:selectedFiles', 'select-folder'],
+    emits: ['update:selectedFiles', 'select-folder', 'error'],
     setup(props, { emit }) {
       const treeData = ref<any[]>([]);
   
       const loadTreeData = async () => {
         if (props.folderPath && window.electronAPI) {
-          const data = await window.electronAPI.getFolderTree(props.folderPath, props.hiddenList);
-          treeData.value = data;
+          try {
+            console.log('Loading tree data for path:', props.folderPath);
+            const data = await window.electronAPI.getFolderTree(props.folderPath, props.hiddenList);
+            console.log('Received tree data:', data);
+            treeData.value = data || [];
+          } catch (error) {
+            console.error('Error loading tree data:', error);
+            treeData.value = [];
+            emit('error', 'Failed to load folder structure. Please try again or select a different folder.');
+          }
         } else {
+          console.log('No folder path or electronAPI available');
           treeData.value = [];
         }
       };
@@ -84,14 +93,29 @@
         emit('update:selectedFiles', current);
       };
   
-      const selectFolder = () => {
-        emit('select-folder');
+      const onSelectFolder = async () => {
+        console.log('Select folder button clicked');
+        if (window.electronAPI) {
+          try {
+            console.log('Calling electronAPI.selectFolder()');
+            const result = await window.electronAPI.selectFolder();
+            console.log('selectFolder result:', result);
+            if (result) {
+              console.log('Emitting select-folder event with path:', result);
+              emit('select-folder', result);
+            }
+          } catch (error) {
+            console.error('Error selecting folder:', error);
+          }
+        } else {
+          console.error('electronAPI is not available');
+        }
       };
   
       return {
         treeData,
         toggleFile,
-        selectFolder,
+        onSelectFolder,
       };
     },
   });
@@ -107,6 +131,16 @@
   
   .folder-tree button {
     margin-bottom: 1rem;
+    padding: 0.5rem 1rem;
+    background-color: #2d2d2d;
+    color: #fff;
+    border: 1px solid #444;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  
+  .folder-tree button:hover {
+    background-color: #3d3d3d;
   }
   
   .folder-tree ul {

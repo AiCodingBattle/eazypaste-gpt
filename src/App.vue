@@ -1,36 +1,32 @@
 <template>
   <div class="app-container dark-theme">
     <header class="header">
-      <h1>EazyPaste</h1>
+      <h1>EazyPaste GPT</h1>
     </header>
     <div class="main-content">
       <ConfigPanel
-        :hiddenList="hiddenList"
-        @update:hiddenList="updateHiddenList"
-        :introRules="introRules"
-        @update:introRules="updateIntroRules"
+        v-model:hiddenList="hiddenList"
+        v-model:introRules="introRules"
       />
 
       <FolderTree
         :folderPath="folderPath"
         :hiddenList="hiddenList"
+        v-model:selectedFiles="selectedFiles"
         @select-folder="selectFolder"
-        @update:selectedFiles="updateSelectedFiles"
-        :selectedFiles="selectedFiles"
       />
 
       <PromptBuilder
         :selectedFiles="selectedFiles"
         :introRules="introRules"
-        :userTask="userTask"
-        @update:userTask="updateUserTask"
+        v-model:userTask="userTask"
       />
     </div>
   </div>
 </template>
 
 <script lang="ts">
-import { defineComponent, onMounted, ref } from 'vue';
+import { defineComponent, onMounted, ref, watch } from 'vue';
 import ConfigPanel from './components/ConfigPanel.vue';
 import FolderTree from './components/FolderTree.vue';
 import PromptBuilder from './components/PromptBuilder.vue';
@@ -57,59 +53,59 @@ export default defineComponent({
 
     const loadStoreData = async () => {
       if (window.electronAPI) {
-        const data = await window.electronAPI.getStoreData();
-        folderPath.value = data.lastFolderPath || '';
-        hiddenList.value = data.hiddenList || [];
-        introRules.value = data.introRules || '';
-        selectedFiles.value = data.selectedFiles || [];
-        userTask.value = data.userTask || '';
+        try {
+          const data = await window.electronAPI.getStoreData();
+          folderPath.value = data.lastFolderPath || '';
+          hiddenList.value = data.hiddenList || [];
+          introRules.value = data.introRules || '';
+          selectedFiles.value = data.selectedFiles || [];
+          userTask.value = data.userTask || '';
+        } catch (error) {
+          console.error('Error loading store data:', error);
+        }
       }
     };
 
     // Update electron store whenever we change data
     const saveStoreData = async () => {
-      await window.electronAPI.setStoreData({
-        lastFolderPath: folderPath.value,
-        hiddenList: hiddenList.value,
-        introRules: introRules.value,
-        selectedFiles: selectedFiles.value,
-        userTask: userTask.value,
-      });
+      if (window.electronAPI) {
+        try {
+          const storeData = {
+            lastFolderPath: folderPath.value || '',
+            hiddenList: Array.from(hiddenList.value || []),
+            introRules: introRules.value || '',
+            selectedFiles: Array.from(selectedFiles.value || []),
+            userTask: userTask.value || '',
+          };
+          await window.electronAPI.setStoreData(JSON.parse(JSON.stringify(storeData)));
+        } catch (error) {
+          console.error('Error saving store data:', error);
+        }
+      }
     };
 
     onMounted(() => {
       loadStoreData();
     });
 
-    // watchers
-    const updateHiddenList = async (newList: string[]) => {
-      hiddenList.value = newList;
-      await saveStoreData();
-    };
+    // Watch for changes and save to store
+    watch(
+      [hiddenList, introRules, selectedFiles, userTask, folderPath],
+      () => {
+        saveStoreData();
+      },
+      { deep: true }
+    );
 
-    const updateIntroRules = async (newRules: string) => {
-      introRules.value = newRules;
-      await saveStoreData();
-    };
-
-    const updateUserTask = async (newTask: string) => {
-      userTask.value = newTask;
-      await saveStoreData();
-    };
-
-    const updateSelectedFiles = async (files: string[]) => {
-      selectedFiles.value = files;
-      await saveStoreData();
-    };
-
-    const selectFolder = async () => {
+    const selectFolder = async (newPath: string) => {
+      console.log('selectFolder called in App.vue with path:', newPath);
       if (window.electronAPI) {
-        const result = await window.electronAPI.selectFolder();
-        if (result) {
-          folderPath.value = result;
-          selectedFiles.value = [];
-          await saveStoreData();
-        }
+        console.log('Setting folderPath to:', newPath);
+        folderPath.value = newPath;
+        selectedFiles.value = []; // Reset selected files when changing folders
+        console.log('New folderPath value:', folderPath.value);
+      } else {
+        console.error('electronAPI is not available in App.vue');
       }
     };
 
@@ -119,17 +115,19 @@ export default defineComponent({
       introRules,
       selectedFiles,
       userTask,
-      updateHiddenList,
-      updateIntroRules,
-      updateUserTask,
-      updateSelectedFiles,
       selectFolder,
     };
   },
 });
 </script>
 
-<style scoped>
+<style>
+/* Global dark theme styles */
+.dark-theme {
+  background-color: #1e1e1e;
+  color: #ffffff;
+}
+
 .app-container {
   display: flex;
   flex-direction: column;
@@ -138,7 +136,13 @@ export default defineComponent({
 
 .header {
   padding: 1rem;
+  background-color: #2d2d2d;
   border-bottom: 1px solid #444;
+}
+
+.header h1 {
+  margin: 0;
+  font-size: 1.5rem;
 }
 
 .main-content {
@@ -146,6 +150,4 @@ export default defineComponent({
   flex: 1;
   overflow: hidden;
 }
-
-/* Dark theme styling in combination with a global .dark-theme class */
 </style>
