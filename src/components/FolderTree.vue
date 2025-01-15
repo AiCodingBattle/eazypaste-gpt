@@ -131,36 +131,40 @@
   
       const loadTreeData = async () => {
         if (!props.folderPath || !window.electronAPI) {
-          if (!props.folderPath) {
+            if (!props.folderPath) {
             console.log('No folder path available');
-          } else if (!window.electronAPI) {
+            } else if (!window.electronAPI) {
             console.log('electronAPI not available');
-          }
-          treeData.value = [];
-          return;
+            }
+            treeData.value = [];
+            return;
         }
-  
+
         try {
-          console.log('Loading tree data for path:', props.folderPath);
-          const flatData = await window.electronAPI.getFolderTree(props.folderPath, props.hiddenList);
-          
-          if (!Array.isArray(flatData)) {
+            // FIX: Use a template string
+            console.log(`Loading tree data for path: ${props.folderPath}`);
+            const flatData = await window.electronAPI.getFolderTree(props.folderPath, props.hiddenList);
+
+            if (!Array.isArray(flatData)) {
             throw new Error('Invalid data format received');
-          }
-  
-          // Log only the count to avoid serialization issues
-          console.log(`Received ${flatData.length} items`);
-  
-          const tree = buildTreeFromFlatData(flatData);
-          console.log(`Built tree with ${tree.length} root items`);
-          
-          treeData.value = tree;
+            }
+
+            // FIX: Use a template string
+            console.log(`Received ${flatData.length} items`);
+
+            const tree = buildTreeFromFlatData(flatData);
+
+            // FIX: Use a template string
+            console.log(`Built tree with ${tree.length} root items`);
+
+            treeData.value = tree;
         } catch (error) {
-          console.error('Error loading tree data:', error);
-          treeData.value = [];
-          emit('error', 'Failed to load folder structure. Please try again or select a different folder.');
+            console.error('Error loading tree data:', error);
+            treeData.value = [];
+            emit('error', 'Failed to load folder structure. Please try again or select a different folder.');
         }
-      };
+        };
+
   
       // Watch for changes to folderPath or hiddenList
       watch([() => props.folderPath, () => props.hiddenList], () => {

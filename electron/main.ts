@@ -100,36 +100,33 @@ ipcMain.handle('get-folder-tree', async (_, folderPath: string, hiddenList: stri
   if (!folderPath) return [];
 
   try {
-    // Get all files and directories
     const files = await glob('**/*', {
       cwd: folderPath,
       dot: true,
     });
 
-    // Filter out hidden items
     const filtered = files.filter((f) => {
       return !hiddenList.some((hidden) => f.includes(hidden));
     });
 
-    // Process files in smaller chunks to avoid memory issues
     const result = [];
     const chunkSize = 50;
 
     for (let i = 0; i < filtered.length; i += chunkSize) {
       const chunk = filtered.slice(i, i + chunkSize);
-      
+
       for (const relPath of chunk) {
         const fullPath = path.join(folderPath, relPath);
         try {
           const stats = await fs.promises.stat(fullPath);
-          // Create a minimal object with only the necessary data
           result.push({
-            n: path.basename(relPath),          // name
-            p: fullPath,                        // path
-            d: stats.isDirectory(),             // isDirectory
-            r: path.dirname(relPath) === '.' ? '' : path.dirname(relPath) // parent
+            n: path.basename(relPath),  // name
+            p: fullPath,                // path
+            d: stats.isDirectory(),     // isDirectory
+            r: path.dirname(relPath) === '.' ? '' : path.dirname(relPath), // parent
           });
         } catch (error) {
+          // FIX: Add backticks or quotes
           console.error(`Error processing path ${fullPath}:`, error);
           continue;
         }
@@ -139,9 +136,11 @@ ipcMain.handle('get-folder-tree', async (_, folderPath: string, hiddenList: stri
     return result;
   } catch (error) {
     console.error('Error building folder tree:', error);
+    // Return a simple error message or throw
     throw new Error('Failed to build folder tree');
   }
 });
+
 
 // 5) Read file content
 ipcMain.handle('read-file', async (_, filePath: string) => {
