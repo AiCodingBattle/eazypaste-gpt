@@ -43,7 +43,7 @@
   </template>
   
   <script lang="ts">
-  import { defineComponent, ref, watch, onMounted, PropType, onUnmounted } from 'vue';
+  import { defineComponent, ref, watch, onMounted, onUnmounted } from 'vue';
   import TreeNode from './TreeNode.vue';
   import { store } from '../store';
   
@@ -58,12 +58,22 @@
         required: true,
       },
       hiddenList: {
-        type: Array as PropType<string[]>,
+        type: Array as () => string[],
         required: true,
       },
       selectedFiles: {
-        type: Array as PropType<string[]>,
+        type: Array as () => string[],
         required: true,
+      },
+      reverseHiddenMode: {
+        type: Boolean,
+        required: false,
+        default: false,
+      },
+      searchWords: {
+        type: Array as () => string[],
+        required: false,
+        default: () => [],
       },
     },
     emits: ['update:selectedFiles', 'select-folder', 'error'],
@@ -117,8 +127,15 @@
         }
 
         try {
+          // Ensure all data is serializable
           const serializedHiddenList = JSON.parse(JSON.stringify(props.hiddenList));
-          const flatData = await window.electronAPI.getFolderTree(props.folderPath, serializedHiddenList);
+          const serializedSearchWords = JSON.parse(JSON.stringify(props.searchWords));
+          const flatData = await window.electronAPI.getFolderTree(
+            String(props.folderPath), 
+            serializedHiddenList,
+            Boolean(props.reverseHiddenMode),
+            serializedSearchWords
+          );
           
           if (!flatData || !Array.isArray(flatData)) {
             throw new Error('Invalid data received from IPC call');
@@ -133,14 +150,91 @@
       };
 
       // Watch for changes to folderPath or hiddenList
-      watch([() => props.folderPath, () => props.hiddenList], () => {
-        loadTreeData();
-      });
+      watch(
+        [
+          () => props.folderPath,
+          () => props.hiddenList,
+          () => props.reverseHiddenMode,
+          () => props.searchWords,
+        ],
+        async (newValues, oldValues) => {
+          if (props.folderPath) {
+            // Force immediate update when search words or reverse mode changes
+            if (
+              JSON.stringify(newValues[3]) !== JSON.stringify(oldValues[3]) || // searchWords changed
+              newValues[2] !== oldValues[2] // reverseHiddenMode changed
+            ) {
+              await loadTreeData();
+              // If we're in reverse mode and search words changed, refresh expanded nodes
+              if (props.reverseHiddenMode) {
+                await unfoldAll();
+              }
+            } else {
+              await loadTreeData();
+            }
+          }
+        },
+        { deep: true }
+      );
   
       onMounted(() => {
         loadTreeData();
+        setupWatchers();
       });
-  
+
+      // Cleanup watchers when component is unmounted
+      onUnmounted(() => {
+        cleanupWatchers();
+      });
+
+      // Setup watchers for file changes
+      const setupWatchers = async () => {
+        if (window.electronAPI && props.folderPath) {
+          try {
+            // Start watching the folder
+            await window.electronAPI.startWatching(props.folderPath);
+            
+            // Setup event listeners
+            window.electronAPI.onFileCreated(handleFileCreated);
+            window.electronAPI.onFileDeleted(handleFileDeleted);
+            const removeFileChangeListener = window.electronAPI.onFileChanged(handleFileChanged);
+            window.electronAPI.onDirCreated(handleDirCreated);
+            window.electronAPI.onDirDeleted(handleDirDeleted);
+
+            // Store cleanup function
+            cleanupFunction = () => {
+              if (window.electronAPI) {
+                window.electronAPI.stopWatching();
+                window.electronAPI.removeFileWatchers();
+                if (removeFileChangeListener) {
+                  removeFileChangeListener();
+                }
+              }
+            };
+          } catch (error) {
+            console.error('Error setting up file watchers:', error);
+          }
+        }
+      };
+
+      // Cleanup watchers
+      const cleanupWatchers = () => {
+        if (cleanupFunction) {
+          cleanupFunction();
+          cleanupFunction = null;
+        }
+      };
+
+      // Watch for folder path changes to reset watchers
+      watch(() => props.folderPath, async (newPath, oldPath) => {
+        if (oldPath) {
+          cleanupWatchers();
+        }
+        if (newPath) {
+          await setupWatchers();
+        }
+      });
+
       const toggleFile = (filePath: string) => {
         const current = [...props.selectedFiles];
         if (current.includes(filePath)) {
@@ -184,24 +278,62 @@
       };
   
       // Select/Deselect all files
-      const selectAllFiles = () => {
+      const selectAllFiles = async () => {
         if (allFilesSelected.value) {
           // Deselect all files
           emit('update:selectedFiles', []);
           allFilesSelected.value = false;
         } else {
-          // Select all files
-          const allPaths = getAllFilePaths(treeData.value);
-          emit('update:selectedFiles', allPaths);
-          allFilesSelected.value = true;
+          try {
+            // Get the current visible files based on filters
+            const serializedHiddenList = JSON.parse(JSON.stringify(props.hiddenList));
+            const serializedSearchWords = JSON.parse(JSON.stringify(props.searchWords));
+            const flatData = await window.electronAPI.getFolderTree(
+              String(props.folderPath), 
+              serializedHiddenList,
+              Boolean(props.reverseHiddenMode),
+              serializedSearchWords
+            );
+            
+            if (!flatData || !Array.isArray(flatData)) {
+              throw new Error('Invalid data received from IPC call');
+            }
+
+            const currentTreeData = buildTreeFromFlatData(flatData);
+            const allPaths = getAllFilePaths(currentTreeData);
+            emit('update:selectedFiles', allPaths);
+            allFilesSelected.value = true;
+          } catch (error) {
+            console.error('Error selecting all files:', error);
+            emit('error', 'Failed to select all files');
+          }
         }
       };
   
       // Watch selectedFiles to update allFilesSelected state
-      watch(() => props.selectedFiles, (newFiles) => {
-        const allPaths = getAllFilePaths(treeData.value);
-        allFilesSelected.value = allPaths.length > 0 && 
-          allPaths.every(path => newFiles.includes(path));
+      watch(() => props.selectedFiles, async (newFiles) => {
+        try {
+          // Get the current visible files based on filters
+          const serializedHiddenList = JSON.parse(JSON.stringify(props.hiddenList));
+          const serializedSearchWords = JSON.parse(JSON.stringify(props.searchWords));
+          const flatData = await window.electronAPI.getFolderTree(
+            String(props.folderPath), 
+            serializedHiddenList,
+            Boolean(props.reverseHiddenMode),
+            serializedSearchWords
+          );
+          
+          if (!flatData || !Array.isArray(flatData)) {
+            throw new Error('Invalid data received from IPC call');
+          }
+
+          const currentTreeData = buildTreeFromFlatData(flatData);
+          const allPaths = getAllFilePaths(currentTreeData);
+          allFilesSelected.value = allPaths.length > 0 && 
+            allPaths.every(path => newFiles.includes(path));
+        } catch (error) {
+          console.error('Error updating allFilesSelected state:', error);
+        }
       });
   
       const unfoldAll = async () => {
@@ -241,9 +373,15 @@
         if (props.folderPath) {
           try {
             loading.value = true;
-            // Create a clean copy of hiddenList for IPC
+            // Create a clean copy of hiddenList and searchWords for IPC
             const serializedHiddenList = JSON.parse(JSON.stringify(props.hiddenList));
-            const result = await window.electronAPI.getFolderTree(props.folderPath, serializedHiddenList);
+            const serializedSearchWords = JSON.parse(JSON.stringify(props.searchWords));
+            const result = await window.electronAPI.getFolderTree(
+              String(props.folderPath), 
+              serializedHiddenList,
+              Boolean(props.reverseHiddenMode),
+              serializedSearchWords
+            );
             
             if (!result || !Array.isArray(result)) {
               throw new Error('Invalid data received from IPC call');
@@ -251,6 +389,19 @@
 
             // Process the flat data into a tree structure
             treeData.value = buildTreeFromFlatData(result);
+
+            // Also refresh folder contents
+            const contents = await window.electronAPI.getFolderContents(
+              String(props.folderPath),
+              serializedHiddenList,
+              Boolean(props.reverseHiddenMode),
+              serializedSearchWords
+            );
+
+            if (!contents || !Array.isArray(contents)) {
+              throw new Error('Invalid contents data received from IPC call');
+            }
+
           } catch (err) {
             console.error('Error refreshing folder tree:', err);
             error.value = 'Failed to refresh folder tree';
@@ -266,7 +417,7 @@
           await refreshFolderTree();
           // If all files were selected before, select the new file too
           if (allFilesSelected.value) {
-            const updatedFiles = [...props.selectedFiles, path];
+            const updatedFiles = [...props.selectedFiles, String(path)];
             emit('update:selectedFiles', updatedFiles);
           }
         } catch (err) {
@@ -284,7 +435,7 @@
             const index = updatedFiles.indexOf(path);
             if (index !== -1) {
               updatedFiles.splice(index, 1);
-              updatedFiles.splice(index, 0, path);
+              updatedFiles.splice(index, 0, String(path));
               emit('update:selectedFiles', updatedFiles);
             }
           }
@@ -302,90 +453,32 @@
           }
           // Update the tree after updating selected files to prevent UI glitches
           await refreshFolderTree();
-          // Update allFilesSelected state
-          const allPaths = getAllFilePaths(treeData.value);
-          allFilesSelected.value = allPaths.length > 0 && 
-            allPaths.every(p => props.selectedFiles.includes(p));
         } catch (err) {
           console.error('Error handling file deletion:', err);
         }
       };
 
-      const handleDirCreated = async (path: string) => {
+      const handleDirCreated = async () => {
         await refreshFolderTree();
-        // If all files were selected before, select any files in the new directory
-        if (allFilesSelected.value) {
-          const newPaths = getAllFilePaths(treeData.value);
-          emit('update:selectedFiles', newPaths);
-        }
       };
 
-      const handleDirDeleted = async (path: string) => {
-        // Remove any selected files that were in the deleted directory
-        const updatedFiles = props.selectedFiles.filter(file => !file.startsWith(path));
-        if (updatedFiles.length !== props.selectedFiles.length) {
-          emit('update:selectedFiles', updatedFiles);
-        }
-        // Update the tree after updating selected files to prevent UI glitches
+      const handleDirDeleted = async () => {
         await refreshFolderTree();
-        // Update allFilesSelected state
-        const allPaths = getAllFilePaths(treeData.value);
-        allFilesSelected.value = allPaths.length > 0 && 
-          allPaths.every(p => props.selectedFiles.includes(p));
       };
 
-      // Setup file watchers
-      const setupFileWatchers = async () => {
-        if (props.folderPath) {
-          try {
-            await window.electronAPI.startWatching(props.folderPath);
-            window.electronAPI.onFileCreated(handleFileCreated);
-            window.electronAPI.onFileChanged(handleFileChanged);
-            window.electronAPI.onFileDeleted(handleFileDeleted);
-            window.electronAPI.onDirCreated(handleDirCreated);
-            window.electronAPI.onDirDeleted(handleDirDeleted);
-          } catch (err) {
-            console.error('Error setting up file watchers:', err);
-          }
-        }
-      };
+      let cleanupFunction: (() => void) | null = null;
 
-      // Cleanup file watchers
-      const cleanupFileWatchers = async () => {
-        try {
-          await window.electronAPI.stopWatching();
-          window.electronAPI.removeFileWatchers();
-        } catch (err) {
-          console.error('Error cleaning up file watchers:', err);
-        }
-      };
-
-      // Watch for folder path changes
-      watch(() => props.folderPath, async (newPath, oldPath) => {
-        if (oldPath) {
-          await cleanupFileWatchers();
-        }
-        if (newPath) {
-          await setupFileWatchers();
-        }
-      });
-
-      // Cleanup on component unmount
-      onUnmounted(async () => {
-        await cleanupFileWatchers();
-      });
-  
       return {
         treeData,
-        toggleFile,
         onSelectFolder,
+        toggleFile,
         selectAllFiles,
         allFilesSelected,
         unfoldAll,
         foldAll,
         expandedState,
-        handleExpansionChange,
         allFolded,
+        handleExpansionChange,
         loading,
         error,
       };

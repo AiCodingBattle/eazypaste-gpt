@@ -23,11 +23,15 @@
       <ConfigPanel
         v-model:hiddenList="hiddenList"
         v-model:introRules="introRules"
+        v-model:reverseHiddenMode="reverseHiddenMode"
+        v-model:searchWords="searchWords"
       />
 
       <FolderTree
         :folderPath="folderPath"
         :hiddenList="hiddenList"
+        :reverseHiddenMode="reverseHiddenMode"
+        :searchWords="searchWords"
         v-model:selectedFiles="selectedFiles"
         @select-folder="selectFolder"
       />
@@ -69,6 +73,8 @@ export default defineComponent({
     const userTask = ref<string>('');
     const showToast = ref(false);
     const toastMessage = ref('');
+    const reverseHiddenMode = ref<boolean>(false);
+    const searchWords = ref<string[]>([]);
 
     const showToastMessage = (message: string) => {
       toastMessage.value = message;
@@ -95,51 +101,46 @@ export default defineComponent({
       }
     };
 
-    const loadStoreData = async () => {
+    onMounted(async () => {
       if (window.electronAPI) {
         try {
           const data = await window.electronAPI.getStoreData();
-          folderPath.value = data.lastFolderPath || '';
-          hiddenList.value = data.hiddenList || [];
-          introRules.value = data.introRules || '';
-          selectedFiles.value = data.selectedFiles || [];
-          userTask.value = data.userTask || '';
+          hiddenList.value = data.hiddenList;
+          introRules.value = data.introRules;
+          selectedFiles.value = data.selectedFiles;
+          userTask.value = data.userTask;
+          reverseHiddenMode.value = data.reverseHiddenMode;
+          searchWords.value = data.searchWords;
+
+          if (data.lastFolderPath) {
+            folderPath.value = data.lastFolderPath;
+          }
         } catch (error) {
-          console.error('Error loading store data:', error);
+          console.error('Error loading stored data:', error);
         }
       }
-    };
-
-    // Update electron store whenever we change data
-    const saveStoreData = async () => {
-      if (window.electronAPI) {
-        try {
-          const storeData = {
-            lastFolderPath: folderPath.value || '',
-            hiddenList: Array.from(hiddenList.value || []),
-            introRules: introRules.value || '',
-            selectedFiles: Array.from(selectedFiles.value || []),
-            userTask: userTask.value || '',
-          };
-          await window.electronAPI.setStoreData(JSON.parse(JSON.stringify(storeData)));
-        } catch (error) {
-          console.error('Error saving store data:', error);
-        }
-      }
-    };
-
-    onMounted(() => {
-      loadStoreData();
     });
 
-    // Watch for changes and save to store
-    watch(
-      [hiddenList, introRules, selectedFiles, userTask, folderPath],
-      () => {
-        saveStoreData();
-      },
-      { deep: true }
-    );
+    // Watch for changes to store them
+    watch([hiddenList, introRules, selectedFiles, userTask, reverseHiddenMode, searchWords, folderPath], async () => {
+      if (window.electronAPI) {
+        try {
+          // Ensure data is serializable by creating a clean copy
+          const serializedData = {
+            hiddenList: JSON.parse(JSON.stringify(hiddenList.value)),
+            introRules: String(introRules.value),
+            selectedFiles: JSON.parse(JSON.stringify(selectedFiles.value)),
+            userTask: String(userTask.value),
+            reverseHiddenMode: Boolean(reverseHiddenMode.value),
+            searchWords: JSON.parse(JSON.stringify(searchWords.value)),
+            lastFolderPath: String(folderPath.value),
+          };
+          await window.electronAPI.setStoreData(serializedData);
+        } catch (error) {
+          console.error('Error saving data:', error);
+        }
+      }
+    }, { deep: true });
 
     const selectFolder = async (newPath: string) => {
       console.log('selectFolder called in App.vue with path:', newPath);
@@ -164,6 +165,8 @@ export default defineComponent({
       openDiscord,
       showToast,
       toastMessage,
+      reverseHiddenMode,
+      searchWords,
     };
   },
 });

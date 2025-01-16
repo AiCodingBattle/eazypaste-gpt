@@ -8,6 +8,10 @@ export interface State {
   introRules: string;
   userTask: string;
   lastFolderPath: string;
+
+  // NEW FIELDS
+  reverseHiddenMode: boolean;
+  searchWords: string[];
 }
 
 // Define injection key
@@ -21,6 +25,10 @@ export const store = createStore<State>({
     introRules: '',
     userTask: '',
     lastFolderPath: '',
+
+    // Default to false / empty
+    reverseHiddenMode: false,
+    searchWords: [],
   },
   mutations: {
     setHiddenList(state: State, list: string[]) {
@@ -37,6 +45,14 @@ export const store = createStore<State>({
     },
     setLastFolderPath(state: State, path: string) {
       state.lastFolderPath = path;
+    },
+
+    // NEW MUTATIONS
+    setReverseHiddenMode(state: State, mode: boolean) {
+      state.reverseHiddenMode = mode;
+    },
+    setSearchWords(state: State, words: string[]) {
+      state.searchWords = words;
     },
   },
   actions: {
@@ -55,6 +71,14 @@ export const store = createStore<State>({
     async updateLastFolderPath({ commit }: { commit: Commit }, path: string) {
       commit('setLastFolderPath', path);
     },
+
+    // NEW ACTIONS
+    async updateReverseHiddenMode({ commit }: { commit: Commit }, mode: boolean) {
+      commit('setReverseHiddenMode', mode);
+    },
+    async updateSearchWords({ commit }: { commit: Commit }, words: string[]) {
+      commit('setSearchWords', words);
+    },
   },
   getters: {
     getHiddenList: (state: State) => state.hiddenList,
@@ -62,5 +86,9 @@ export const store = createStore<State>({
     getIntroRules: (state: State) => state.introRules,
     getUserTask: (state: State) => state.userTask,
     getLastFolderPath: (state: State) => state.lastFolderPath,
+
+    // NEW GETTERS
+    getReverseHiddenMode: (state: State) => state.reverseHiddenMode,
+    getSearchWords: (state: State) => state.searchWords,
   },
 });

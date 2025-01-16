@@ -1763,7 +1763,10 @@ We may go back and forth a few times. If we do, remember to continue to output t
 
 Take all the time you need.`,
   selectedFiles: [],
-  userTask: ""
+  userTask: "",
+  // NEW FIELDS FOR REVERSE HIDDEN MODE
+  reverseHiddenMode: false,
+  searchWords: []
 };
 const store = new Store({
   name: "eazypaste-config",
@@ -1811,7 +1814,9 @@ ipcMain.handle("get-store-data", async () => {
     hiddenList: store.get("hiddenList"),
     introRules: store.get("introRules"),
     selectedFiles: store.get("selectedFiles"),
-    userTask: store.get("userTask")
+    userTask: store.get("userTask"),
+    reverseHiddenMode: store.get("reverseHiddenMode"),
+    searchWords: store.get("searchWords")
   };
 });
 ipcMain.handle("set-store-data", async (_, data) => {
@@ -1819,24 +1824,69 @@ ipcMain.handle("set-store-data", async (_, data) => {
     store.set(key, value);
   });
 });
-ipcMain.handle("get-folder-tree", async (_, folderPath, hiddenList) => {
+async function matchesSearchCriteria(entryName, entryPath, searchWords, isDirectory) {
+  if (!searchWords || searchWords.length === 0) {
+    return true;
+  }
+  const cleanedSearchWords = searchWords.map((word) => word.toLowerCase().trim()).filter((word) => word.length > 0);
+  if (cleanedSearchWords.length === 0) {
+    return true;
+  }
+  const lowerEntryName = entryName.toLowerCase();
+  for (const word of cleanedSearchWords) {
+    if (lowerEntryName.includes(word)) {
+      return true;
+    }
+  }
+  if (isDirectory) {
+    return false;
+  }
+  try {
+    const ext = sysPath__default.extname(entryPath).toLowerCase();
+    const textFileExts = [".txt", ".md", ".js", ".ts", ".jsx", ".tsx", ".vue", ".css", ".scss", ".html", ".json", ".yml", ".yaml", ".xml", ".csv"];
+    if (!textFileExts.includes(ext)) {
+      return false;
+    }
+    const content = await fsExtra.readFile(entryPath, "utf-8");
+    const lowerContent = content.toLowerCase();
+    return cleanedSearchWords.some((word) => lowerContent.includes(word));
+  } catch (err) {
+    console.error(`Error checking file ${entryPath}:`, err);
+    return false;
+  }
+}
+ipcMain.handle("get-folder-tree", async (_, folderPath, hiddenList, reverseHiddenMode, searchWords) => {
   if (!folderPath) return [];
   const getFilesRecursively = async (dir) => {
     const items = await fsExtra.readdir(dir, { withFileTypes: true });
     const result = [];
     for (const item of items) {
-      if (hiddenList.some((hidden) => item.name.includes(hidden))) continue;
+      if (!item.isDirectory()) continue;
       const itemPath = sysPath__default.join(dir, item.name);
-      if (item.isDirectory()) {
-        const children = await getFilesRecursively(itemPath);
+      const isHiddenByList = hiddenList.some((hidden) => item.name.includes(hidden));
+      if (isHiddenByList) {
+        continue;
+      }
+      const children = await getFilesRecursively(itemPath);
+      const dirMatches = await matchesSearchCriteria(item.name, itemPath, searchWords, true);
+      if (dirMatches || children.length > 0) {
         result.push({
           n: item.name,
           p: itemPath,
           d: true,
           c: children
-          // Add children directly to the directory node
         });
-      } else {
+      }
+    }
+    for (const item of items) {
+      if (item.isDirectory()) continue;
+      const itemPath = sysPath__default.join(dir, item.name);
+      const isHiddenByList = hiddenList.some((hidden) => item.name.includes(hidden));
+      if (isHiddenByList) {
+        continue;
+      }
+      const matches = await matchesSearchCriteria(item.name, itemPath, searchWords, false);
+      if (matches) {
         result.push({
           n: item.name,
           p: itemPath,
@@ -1847,28 +1897,34 @@ ipcMain.handle("get-folder-tree", async (_, folderPath, hiddenList) => {
     return result;
   };
   try {
-    return await getFilesRecursively(folderPath);
+    const result = await getFilesRecursively(folderPath);
+    return result;
   } catch (error) {
     console.error("Error reading folder structure:", error);
     return [];
   }
 });
-ipcMain.handle("get-folder-contents", async (_, folderPath, hiddenList) => {
+ipcMain.handle("get-folder-contents", async (_, folderPath, hiddenList, reverseHiddenMode, searchWords) => {
   if (!folderPath) return [];
   try {
     const items = await fsExtra.readdir(folderPath, { withFileTypes: true });
     const contents = [];
     for (const item of items) {
-      if (hiddenList.some((hidden) => item.name.includes(hidden))) continue;
       const itemPath = sysPath__default.join(folderPath, item.name);
-      contents.push({
-        name: String(item.name),
-        path: String(itemPath),
-        isDirectory: Boolean(item.isDirectory()),
-        type: item.isDirectory() ? "directory" : "file"
-      });
+      const isHiddenByList = hiddenList.some((hidden) => item.name.includes(hidden));
+      if (isHiddenByList) {
+        continue;
+      }
+      const matches = await matchesSearchCriteria(item.name, itemPath, searchWords, item.isDirectory());
+      if (matches) {
+        contents.push({
+          name: String(item.name),
+          path: String(itemPath),
+          isDirectory: Boolean(item.isDirectory()),
+          type: item.isDirectory() ? "directory" : "file"
+        });
+      }
     }
-    console.log("Sending folder contents:", JSON.stringify(contents));
     return contents;
   } catch (error) {
     console.error("Error reading folder contents:", error);
