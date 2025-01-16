@@ -43,14 +43,9 @@
   </template>
   
   <script lang="ts">
-  import { defineComponent, ref, watch, onMounted, PropType } from 'vue';
+  import { defineComponent, ref, watch, onMounted, PropType, onUnmounted } from 'vue';
   import TreeNode from './TreeNode.vue';
-  
-  declare global {
-    interface Window {
-      electronAPI?: any;
-    }
-  }
+  import { store } from '../store';
   
   export default defineComponent({
     name: 'FolderTree',
@@ -78,6 +73,8 @@
       const expandedState = ref<boolean | null>(null);
       const expansionStates = ref<Map<string, boolean>>(new Map());
       const allFolded = ref(true);
+      const loading = ref(false);
+      const error = ref<string | null>(null);
   
       const buildTreeFromFlatData = (flatData: any[]) => {
         // Convert flat data to tree structure
@@ -233,6 +230,145 @@
         }
       });
   
+      // Function to refresh the folder tree
+      const refreshFolderTree = async () => {
+        if (props.folderPath) {
+          try {
+            loading.value = true;
+            // Create a clean copy of hiddenList for IPC
+            const serializedHiddenList = JSON.parse(JSON.stringify(props.hiddenList));
+            const result = await window.electronAPI.getFolderTree(props.folderPath, serializedHiddenList);
+            
+            if (!result || !Array.isArray(result)) {
+              throw new Error('Invalid data received from IPC call');
+            }
+
+            // Process the flat data into a tree structure
+            treeData.value = buildTreeFromFlatData(result);
+          } catch (err) {
+            console.error('Error refreshing folder tree:', err);
+            error.value = 'Failed to refresh folder tree';
+          } finally {
+            loading.value = false;
+          }
+        }
+      };
+
+      // Function to handle file system changes
+      const handleFileCreated = async (path: string) => {
+        try {
+          await refreshFolderTree();
+          // If all files were selected before, select the new file too
+          if (allFilesSelected.value) {
+            const updatedFiles = [...props.selectedFiles, path];
+            emit('update:selectedFiles', updatedFiles);
+          }
+        } catch (err) {
+          console.error('Error handling file creation:', err);
+        }
+      };
+
+      const handleFileChanged = async (path: string) => {
+        try {
+          await refreshFolderTree();
+          // If the changed file is in the selected files, emit an update to refresh its content
+          if (props.selectedFiles.includes(path)) {
+            const updatedFiles = [...props.selectedFiles];
+            // Remove and re-add the file to trigger a content refresh
+            const index = updatedFiles.indexOf(path);
+            if (index !== -1) {
+              updatedFiles.splice(index, 1);
+              updatedFiles.splice(index, 0, path);
+              emit('update:selectedFiles', updatedFiles);
+            }
+          }
+        } catch (err) {
+          console.error('Error handling file change:', err);
+        }
+      };
+
+      const handleFileDeleted = async (path: string) => {
+        try {
+          // If the deleted file is in the selected files, remove it
+          if (props.selectedFiles.includes(path)) {
+            const updatedFiles = props.selectedFiles.filter(file => file !== path);
+            emit('update:selectedFiles', updatedFiles);
+          }
+          // Update the tree after updating selected files to prevent UI glitches
+          await refreshFolderTree();
+          // Update allFilesSelected state
+          const allPaths = getAllFilePaths(treeData.value);
+          allFilesSelected.value = allPaths.length > 0 && 
+            allPaths.every(p => props.selectedFiles.includes(p));
+        } catch (err) {
+          console.error('Error handling file deletion:', err);
+        }
+      };
+
+      const handleDirCreated = async (path: string) => {
+        await refreshFolderTree();
+        // If all files were selected before, select any files in the new directory
+        if (allFilesSelected.value) {
+          const newPaths = getAllFilePaths(treeData.value);
+          emit('update:selectedFiles', newPaths);
+        }
+      };
+
+      const handleDirDeleted = async (path: string) => {
+        // Remove any selected files that were in the deleted directory
+        const updatedFiles = props.selectedFiles.filter(file => !file.startsWith(path));
+        if (updatedFiles.length !== props.selectedFiles.length) {
+          emit('update:selectedFiles', updatedFiles);
+        }
+        // Update the tree after updating selected files to prevent UI glitches
+        await refreshFolderTree();
+        // Update allFilesSelected state
+        const allPaths = getAllFilePaths(treeData.value);
+        allFilesSelected.value = allPaths.length > 0 && 
+          allPaths.every(p => props.selectedFiles.includes(p));
+      };
+
+      // Setup file watchers
+      const setupFileWatchers = async () => {
+        if (props.folderPath) {
+          try {
+            await window.electronAPI.startWatching(props.folderPath);
+            window.electronAPI.onFileCreated(handleFileCreated);
+            window.electronAPI.onFileChanged(handleFileChanged);
+            window.electronAPI.onFileDeleted(handleFileDeleted);
+            window.electronAPI.onDirCreated(handleDirCreated);
+            window.electronAPI.onDirDeleted(handleDirDeleted);
+          } catch (err) {
+            console.error('Error setting up file watchers:', err);
+          }
+        }
+      };
+
+      // Cleanup file watchers
+      const cleanupFileWatchers = async () => {
+        try {
+          await window.electronAPI.stopWatching();
+          window.electronAPI.removeFileWatchers();
+        } catch (err) {
+          console.error('Error cleaning up file watchers:', err);
+        }
+      };
+
+      // Watch for folder path changes
+      watch(() => props.folderPath, async (newPath, oldPath) => {
+        if (oldPath) {
+          await cleanupFileWatchers();
+        }
+        if (newPath) {
+          await setupFileWatchers();
+        }
+      });
+
+      // Cleanup on component unmount
+      onUnmounted(async () => {
+        await cleanupFileWatchers();
+      });
+  
       return {
         treeData,
         toggleFile,
@@ -244,6 +380,8 @@
         expandedState,
         handleExpansionChange,
         allFolded,
+        loading,
+        error,
       };
     },
   });

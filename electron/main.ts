@@ -1,14 +1,40 @@
 import { app, BrowserWindow, ipcMain, dialog } from 'electron';
 import path from 'path';
 import Store from 'electron-store';
-import fs from 'fs';
 import fsExtra from 'fs-extra';
-import { glob } from 'glob';
 import { fileURLToPath } from 'url';
+import * as chokidar from 'chokidar';
 
 // ES Module __dirname equivalent
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// File watcher instance
+let watcher: chokidar.FSWatcher | null = null;
+
+// Function to start watching a folder
+function startWatching(folderPath: string, hiddenList: string[]) {
+  // Stop any existing watcher
+  if (watcher) {
+    watcher.close();
+  }
+
+  // Initialize watcher with ignore patterns
+  watcher = chokidar.watch(folderPath, {
+    ignored: (watchPath: string) => hiddenList.some(hidden => watchPath.includes(hidden)),
+    persistent: true,
+    ignoreInitial: true
+  });
+
+  // File events
+  watcher
+    .on('add', (watchPath: string) => mainWindow?.webContents.send('file-created', watchPath))
+    .on('change', (watchPath: string) => mainWindow?.webContents.send('file-changed', watchPath))
+    .on('unlink', (watchPath: string) => mainWindow?.webContents.send('file-deleted', watchPath))
+    .on('addDir', (watchPath: string) => mainWindow?.webContents.send('dir-created', watchPath))
+    .on('unlinkDir', (watchPath: string) => mainWindow?.webContents.send('dir-deleted', watchPath))
+    .on('error', (error: unknown) => console.error('Watcher error:', error));
+}
 
 // Disable GPU acceleration to avoid cache issues
 app.disableHardwareAcceleration();
@@ -264,4 +290,20 @@ ipcMain.handle('reset-to-defaults', async () => {
     console.error('Error resetting to defaults:', error);
     return false;
   }
+});
+
+// IPC handler for starting file watching
+ipcMain.handle('start-watching', async (_, folderPath: string) => {
+  const hiddenList = store.get('hiddenList') as string[];
+  startWatching(folderPath, hiddenList);
+  return true;
+});
+
+// IPC handler for stopping file watching
+ipcMain.handle('stop-watching', async () => {
+  if (watcher) {
+    await watcher.close();
+    watcher = null;
+  }
+  return true;
 });

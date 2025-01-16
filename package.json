@@ -17,11 +17,13 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "chokidar": "^4.0.3",
     "electron-store": "^10.0.0",
     "fs-extra": "^11.2.0",
     "glob": "^11.0.1",
     "gpt-tokenizer": "^2.8.1",
-    "vue": "^3.4.21"
+    "vue": "^3.4.21",
+    "vuex": "^4.1.0"
   },
   "devDependencies": {
     "@types/path-browserify": "^1.0.3",

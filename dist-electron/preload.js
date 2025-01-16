@@ -12,7 +12,21 @@ electron.contextBridge.exposeInMainWorld(
     getRelativePath: (filePath, rootPath) => electron.ipcRenderer.invoke("get-relative-path", filePath, rootPath),
     getBasename: (filePath) => electron.ipcRenderer.invoke("get-basename", filePath),
     resetToDefaults: () => electron.ipcRenderer.invoke("reset-to-defaults"),
-    openExternal: (url) => electron.shell.openExternal(url)
+    openExternal: (url) => electron.shell.openExternal(url),
+    startWatching: (folderPath) => electron.ipcRenderer.invoke("start-watching", folderPath),
+    stopWatching: () => electron.ipcRenderer.invoke("stop-watching"),
+    onFileCreated: (callback) => electron.ipcRenderer.on("file-created", (_, path) => callback(path)),
+    onFileChanged: (callback) => electron.ipcRenderer.on("file-changed", (_, path) => callback(path)),
+    onFileDeleted: (callback) => electron.ipcRenderer.on("file-deleted", (_, path) => callback(path)),
+    onDirCreated: (callback) => electron.ipcRenderer.on("dir-created", (_, path) => callback(path)),
+    onDirDeleted: (callback) => electron.ipcRenderer.on("dir-deleted", (_, path) => callback(path)),
+    removeFileWatchers: () => {
+      electron.ipcRenderer.removeAllListeners("file-created");
+      electron.ipcRenderer.removeAllListeners("file-changed");
+      electron.ipcRenderer.removeAllListeners("file-deleted");
+      electron.ipcRenderer.removeAllListeners("dir-created");
+      electron.ipcRenderer.removeAllListeners("dir-deleted");
+    }
   }
 );
 //# sourceMappingURL=preload.js.map

@@ -24,6 +24,7 @@
   - Folder tree structure
   - Path operations
   - Dynamic folder contents loading
+  - File watching and real-time updates
 - Fixed preload script loading issues
 - Fixed store data serialization issues
 - Fixed folder tree data serialization
@@ -43,6 +44,7 @@
 - ✅ Added Select All Files functionality with toggle
 - ✅ Fixed Select All Files to properly include all files in subfolders
 - ✅ Added Reset to Defaults functionality
+- ✅ Implemented real-time file watching with Chokidar
 
 ## What is blocked ❌
 - None at the moment
@@ -68,6 +70,7 @@
    - `src/components/TreeNode.vue`: Tree node component for folder structure
    - `src/components/PromptBuilder.vue`: Prompt building component
    - `src/App.vue`: Main application component
+   - `src/store/index.ts`: Vuex store for state management
 
 3. Configuration:
    - `vite.config.ts`: Build and development configuration
@@ -92,5 +95,6 @@
 - ✅ Default hidden files updated with common development folders
 - ✅ Added Select All Files button with toggle functionality
 - ✅ Added Reset to Defaults functionality with configuration persistence
+- ✅ Added real-time file watching with automatic UI updates
 - ⚙️ Need to move Intro/Rules Text section to a better location
 - ⚙️ Need to improve Reset button spacing 

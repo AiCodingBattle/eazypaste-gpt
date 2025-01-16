@@ -19,5 +19,19 @@ contextBridge.exposeInMainWorld(
       ipcRenderer.invoke('get-basename', filePath),
     resetToDefaults: () => ipcRenderer.invoke('reset-to-defaults'),
     openExternal: (url: string) => shell.openExternal(url),
+    startWatching: (folderPath: string) => ipcRenderer.invoke('start-watching', folderPath),
+    stopWatching: () => ipcRenderer.invoke('stop-watching'),
+    onFileCreated: (callback: (path: string) => void) => ipcRenderer.on('file-created', (_, path) => callback(path)),
+    onFileChanged: (callback: (path: string) => void) => ipcRenderer.on('file-changed', (_, path) => callback(path)),
+    onFileDeleted: (callback: (path: string) => void) => ipcRenderer.on('file-deleted', (_, path) => callback(path)),
+    onDirCreated: (callback: (path: string) => void) => ipcRenderer.on('dir-created', (_, path) => callback(path)),
+    onDirDeleted: (callback: (path: string) => void) => ipcRenderer.on('dir-deleted', (_, path) => callback(path)),
+    removeFileWatchers: () => {
+      ipcRenderer.removeAllListeners('file-created');
+      ipcRenderer.removeAllListeners('file-changed');
+      ipcRenderer.removeAllListeners('file-deleted');
+      ipcRenderer.removeAllListeners('dir-created');
+      ipcRenderer.removeAllListeners('dir-deleted');
+    }
   }
 );
