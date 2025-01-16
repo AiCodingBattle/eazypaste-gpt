@@ -21,6 +21,9 @@
         class="file-checkbox"
       />
       <span class="node-name" :class="{ 'is-file': !node.isDirectory }">{{ node.name }}</span>
+      <span v-if="!node.isDirectory" class="token-count" :class="{ loading: isLoadingTokens }">
+        {{ tokenCount !== null ? `${tokenCount} tokens` : '...' }}
+      </span>
     </div>
 
     <ul v-if="node.isDirectory" v-show="isExpanded" class="node-children">
@@ -42,7 +45,8 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, computed, ref, watch, PropType } from 'vue';
+import { defineComponent, computed, ref, watch, PropType, onMounted, onUnmounted } from 'vue';
+import { estimateTokenCount } from '../utils/tokenCounter';
 
 interface TreeNode {
   name: string;
@@ -77,6 +81,9 @@ export default defineComponent({
     const isExpanded = ref(false);
     const isLoading = ref(false);
     const children = ref<TreeNode[]>([]);
+    const tokenCount = ref<number | null>(null);
+    const isLoadingTokens = ref(false);
+    const removeFileChangeListener = ref<(() => void) | null>(null);
 
     const isSelected = computed(() => {
       return props.selectedFiles.includes(props.node.path);
@@ -153,6 +160,43 @@ export default defineComponent({
       children.value = [];
     });
 
+    const loadTokenCount = async () => {
+      if (props.node.isDirectory) return;
+      
+      isLoadingTokens.value = true;
+      try {
+        const content = await window.electronAPI.getFileContents(props.node.path);
+        tokenCount.value = estimateTokenCount(content);
+      } catch (error) {
+        console.error('Error loading token count:', error);
+        tokenCount.value = null;
+      } finally {
+        isLoadingTokens.value = false;
+      }
+    };
+
+    // Add file change handler
+    const handleFileChange = async (changedPath: string) => {
+      if (changedPath === props.node.path && !props.node.isDirectory) {
+        await loadTokenCount();
+      }
+    };
+
+    // Setup file change listener
+    onMounted(() => {
+      if (!props.node.isDirectory) {
+        loadTokenCount();
+        removeFileChangeListener.value = window.electronAPI.onFileChanged(handleFileChange);
+      }
+    });
+
+    // Cleanup listener on unmount
+    onUnmounted(() => {
+      if (removeFileChangeListener.value) {
+        removeFileChangeListener.value();
+      }
+    });
+
     return {
       isSelected,
       isExpanded,
@@ -160,6 +204,9 @@ export default defineComponent({
       children,
       toggleFile,
       onNodeClick,
+      tokenCount,
+      isLoadingTokens,
+      handleFileChange,
     };
   },
 });
@@ -322,5 +369,19 @@ export default defineComponent({
   to {
     transform: rotate(360deg);
   }
+}
+
+.token-count {
+  margin-left: auto;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  opacity: 0.8;
+  padding: 0.125rem 0.5rem;
+  border-radius: var(--radius-sm);
+  background-color: var(--surface);
+}
+
+.token-count.loading {
+  opacity: 0.5;
 }
 </style>

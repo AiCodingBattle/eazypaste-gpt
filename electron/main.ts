@@ -4,6 +4,7 @@ import Store from 'electron-store';
 import fsExtra from 'fs-extra';
 import { fileURLToPath } from 'url';
 import * as chokidar from 'chokidar';
+import { readFile } from 'fs/promises';
 
 // ES Module __dirname equivalent
 const __filename = fileURLToPath(import.meta.url);
@@ -306,4 +307,15 @@ ipcMain.handle('stop-watching', async () => {
     watcher = null;
   }
   return true;
+});
+
+// Add this IPC handler with the other handlers
+ipcMain.handle('get-file-contents', async (_event, filePath: string) => {
+  try {
+    const content = await readFile(filePath, 'utf-8');
+    return content;
+  } catch (error) {
+    console.error('Error reading file:', error);
+    throw error;
+  }
 });

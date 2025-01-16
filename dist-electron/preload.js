@@ -16,7 +16,11 @@ electron.contextBridge.exposeInMainWorld(
     startWatching: (folderPath) => electron.ipcRenderer.invoke("start-watching", folderPath),
     stopWatching: () => electron.ipcRenderer.invoke("stop-watching"),
     onFileCreated: (callback) => electron.ipcRenderer.on("file-created", (_, path) => callback(path)),
-    onFileChanged: (callback) => electron.ipcRenderer.on("file-changed", (_, path) => callback(path)),
+    onFileChanged: (callback) => {
+      const listener = (_, path) => callback(path);
+      electron.ipcRenderer.on("file-changed", listener);
+      return () => electron.ipcRenderer.removeListener("file-changed", listener);
+    },
     onFileDeleted: (callback) => electron.ipcRenderer.on("file-deleted", (_, path) => callback(path)),
     onDirCreated: (callback) => electron.ipcRenderer.on("dir-created", (_, path) => callback(path)),
     onDirDeleted: (callback) => electron.ipcRenderer.on("dir-deleted", (_, path) => callback(path)),
@@ -26,7 +30,8 @@ electron.contextBridge.exposeInMainWorld(
       electron.ipcRenderer.removeAllListeners("file-deleted");
       electron.ipcRenderer.removeAllListeners("dir-created");
       electron.ipcRenderer.removeAllListeners("dir-deleted");
-    }
+    },
+    getFileContents: (filePath) => electron.ipcRenderer.invoke("get-file-contents", filePath)
   }
 );
 //# sourceMappingURL=preload.js.map

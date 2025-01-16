@@ -6,7 +6,7 @@ declare global {
       startWatching: (folderPath: string) => Promise<void>;
       stopWatching: () => Promise<void>;
       onFileCreated: (callback: (path: string) => void) => void;
-      onFileChanged: (callback: (path: string) => void) => void;
+      onFileChanged: (callback: (path: string) => void) => () => void;
       onFileDeleted: (callback: (path: string) => void) => void;
       onDirCreated: (callback: (path: string) => void) => void;
       onDirDeleted: (callback: (path: string) => void) => void;
@@ -21,6 +21,7 @@ declare global {
       getBasename: (filePath: string) => Promise<string>;
       resetToDefaults: () => Promise<boolean>;
       openExternal: (url: string) => Promise<void>;
+      getFileContents: (filePath: string) => Promise<string>;
     }
   }
 } 

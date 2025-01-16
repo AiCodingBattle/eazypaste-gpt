@@ -5,7 +5,7 @@ import Store from "electron-store";
 import fsExtra from "fs-extra";
 import { fileURLToPath } from "url";
 import { unwatchFile, watchFile, watch as watch$1, stat as stat$2 } from "fs";
-import { realpath as realpath$1, lstat as lstat$1, stat as stat$1, open, readdir as readdir$1 } from "fs/promises";
+import { realpath as realpath$1, lstat as lstat$1, stat as stat$1, open, readdir as readdir$1, readFile } from "fs/promises";
 import { EventEmitter } from "events";
 import { readdir, realpath, lstat, stat } from "node:fs/promises";
 import { Readable } from "node:stream";
@@ -1912,5 +1912,14 @@ ipcMain.handle("stop-watching", async () => {
     watcher = null;
   }
   return true;
+});
+ipcMain.handle("get-file-contents", async (_event, filePath) => {
+  try {
+    const content = await readFile(filePath, "utf-8");
+    return content;
+  } catch (error) {
+    console.error("Error reading file:", error);
+    throw error;
+  }
 });
 //# sourceMappingURL=main.js.map
