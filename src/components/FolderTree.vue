@@ -205,6 +205,12 @@
       });
   
       const unfoldAll = async () => {
+        // First set expanded state to trigger initial expansion
+        expandedState.value = true;
+        // Wait for initial expansion and content loading
+        await new Promise(resolve => setTimeout(resolve, 100));
+        // Set it again to ensure newly loaded content is also expanded
+        expandedState.value = null;
         expandedState.value = true;
       };
 
@@ -490,4 +496,3 @@
     }
   }
   </style>
-  

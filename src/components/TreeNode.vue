@@ -32,7 +32,9 @@
           :node="child"
           :selectedFiles="selectedFiles"
           :hiddenList="hiddenList"
+          :forceExpanded="forceExpanded"
           @toggle-file="$emit('toggle-file', $event)"
+          @expansion-change="$emit('expansion-change', $event)"
         />
       </template>
     </ul>
@@ -114,14 +116,17 @@ export default defineComponent({
     watch(() => props.forceExpanded, async (newValue) => {
       if (newValue !== null) {
         isExpanded.value = newValue;
-        if (newValue && children.value.length === 0) {
-          await loadFolderContents();
+        if (newValue) {
+          // Load contents if they haven't been loaded yet
+          if (children.value.length === 0) {
+            await loadFolderContents();
+          }
+          // Emit the current expansion state
+          emit('expansion-change', {
+            path: props.node.path,
+            isExpanded: isExpanded.value
+          });
         }
-        // Emit the current expansion state
-        emit('expansion-change', {
-          path: props.node.path,
-          isExpanded: isExpanded.value
-        });
       }
     });
 
