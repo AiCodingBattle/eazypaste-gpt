@@ -136,7 +136,7 @@ async function createWindow() {
 
   // Load your Vite dev server or the built index.html
   if (import.meta.env.MODE === 'development') {
-    mainWindow.loadURL('http://localhost:5173');
+    mainWindow.loadURL('http://localhost:5100');
   } else {
     mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
   }

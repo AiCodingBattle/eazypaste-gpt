@@ -1786,7 +1786,7 @@ async function createWindow() {
     }
   });
   {
-    mainWindow.loadURL("http://localhost:5173");
+    mainWindow.loadURL("http://localhost:5100");
   }
 }
 app.whenReady().then(async () => {

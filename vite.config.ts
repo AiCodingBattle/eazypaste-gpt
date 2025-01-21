@@ -45,4 +45,8 @@ export default defineConfig({
       renderer: {}
     }),
   ],
+  server: {
+    port: 5100
+  },
 })
+
