@@ -1,3 +1,4 @@
+
 # EasyPaste GPT 🚀
 
 <div align="center">
@@ -19,7 +20,7 @@
 - 📁 **Smart File Selection**: Easily select and manage files from your project
 - 🔍 **Intelligent Filtering**: Built-in filters for common development files and folders
 - 📝 **Prompt Generation**: Create well-structured prompts for AI tools like ChatGPT
-- 🔄 **XML Integration**: Compatible with [o1-xml-parser](https://github.com/mckaywrigley/o1-xml-parser) for automated code changes
+- 🤖 **AI Integration**: Directly implement AI-suggested code changes
 - 🎨 **Modern UI**: Clean and intuitive interface for a seamless experience
 - ⚡ **Token Estimation**: Approximate token count for generated prompts
 
@@ -61,13 +62,12 @@ yarn dev
 4. **Select Files**: Choose the relevant files from your project
 5. **Generate Prompt**: The prompt will include your selected files and custom rules
 6. **Copy & Use**: Copy the generated prompt and paste it into ChatGPT
-7. **Process Changes**: Use [o1-xml-parser](https://github.com/mckaywrigley/o1-xml-parser) to apply the XML changes returned by ChatGPT
+7. **Implement Changes**: Directly apply the AI-suggested code modifications
 
 ## 🔄 Workflow
 
-1. EasyPaste GPT → Generate Prompt
-2. ChatGPT → Process Prompt & Generate XML
-3. o1-xml-parser → Apply Code Changes
+1. EasyPaste GPT → Generate Implementation Plan
+2. AI Assistant → Process Plan & Implement Changes
 
 ## 🤝 Community
 

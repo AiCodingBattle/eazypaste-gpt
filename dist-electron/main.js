@@ -1726,41 +1726,39 @@ const defaultConfig = {
     ".tiff",
     ".idx"
   ],
-  introRules: `Present a complete plan to solve the problem and implement it in the codebase.
+  introRules: `Provide technical implementation steps with:
+1. Exact file paths/names relative to project root
+2. Required Supabase SQL schema changes (include column types/constraints)
+3. 1-sentence rationale per change
+4. Critical system impact notes
 
-At the end of your response, respond with the following XML section (if applicable).
+Format code blocks with language identifiers.
+Prioritize production-ready patterns.
+Omit:
+- Greetings
+- Conceptual explanations
+- Project setup advice
+- XML/metadata sections
 
-XML Section:
+For database changes:
+- Include complete CREATE TABLE/ALTER TABLE statements
+- Specify constraints (NOT NULL, UNIQUE, REFERENCES)
+- Add indexes for common query patterns
 
-Do not get lazy. Always output the full code in the XML section.
-Enclose this entire section in a markdown codeblock
-Include all of the changed files
-Specify each file operation with CREATE, UPDATE, or DELETE
-For CREATE or UPDATE operations, include the full file code
-Include the full file path (relative to the project directory, good: app/page.tsx, bad: /Users/mckaywrigley/Desktop/projects/new-chat-template/app/page.tsx)
-Enclose the code with ![CDATA[CODE HERE]]
-Use the following XML structure:
-<code_changes>
-  <changed_files>
-    <file>
-      <file_operation>__FILE OPERATION HERE__</file_operation>
-      <file_path>__FILE PATH HERE__</file_path>
-      <file_code><![CDATA[
-__FULL FILE CODE HERE__
-]]></file_code>
-    </file>
-    __REMAINING FILES HERE__
-  </changed_files>
-</code_changes>
-Other rules:
+For API endpoints:
+- Include full route definitions
+- Specify auth requirements
+- Document status codes
 
-DO NOT remove <ai_context> sections. These are to provide you additional context about each file.
-If you create a file, add an <ai_context> comment section at the top of the file.
-If you update a file make sure its <ai_context> stays up-to-date
-DO NOT add comments related to your edits
-DO NOT remove my existing comments
-We may go back and forth a few times. If we do, remember to continue to output the entirety of the code in an XML section (if applicable).
+For UI components:
+- Use TypeScript interfaces
+- Implement accessibility attributes
+- Include responsive breakpoints
 
+For state management:
+- Define action types
+- Handle loading/error states
+- Implement data caching
 Take all the time you need.`,
   selectedFiles: [],
   userTask: "",

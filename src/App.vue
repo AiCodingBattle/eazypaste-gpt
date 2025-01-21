@@ -10,11 +10,6 @@
             <span class="discord-icon">🎮</span>
             Join AiCodingBattle Discord
           </a>
-          <a href="#" 
-             @click.prevent="copyXMLParserLink" 
-             class="xml-parser-link">
-            Use this XML-parser by MckayWrigley to process the output
-          </a>
         </div>
       </div>
     </header>
@@ -82,12 +77,6 @@ export default defineComponent({
       setTimeout(() => {
         showToast.value = false;
       }, 2000);
-    };
-
-    const copyXMLParserLink = async () => {
-      const url = 'https://github.com/mckaywrigley/o1-xml-parser';
-      await navigator.clipboard.writeText(url);
-      showToastMessage('Link copied to clipboard!');
     };
 
     const openDiscord = async () => {
@@ -161,7 +150,6 @@ export default defineComponent({
       selectedFiles,
       userTask,
       selectFolder,
-      copyXMLParserLink,
       openDiscord,
       showToast,
       toastMessage,
@@ -218,8 +206,7 @@ export default defineComponent({
   -webkit-text-fill-color: transparent;
 }
 
-.discord-link,
-.xml-parser-link {
+.discord-link {
   color: var(--text);
   text-decoration: none;
   font-size: 0.9375rem;
@@ -233,8 +220,7 @@ export default defineComponent({
   gap: 0.5rem;
 }
 
-.discord-link:hover,
-.xml-parser-link:hover {
+.discord-link:hover {
   border-color: var(--primary);
   transform: translateY(-1px);
   box-shadow: var(--shadow-sm);
